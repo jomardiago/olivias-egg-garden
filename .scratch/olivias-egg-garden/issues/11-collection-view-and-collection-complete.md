@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Egg Families and choosing the next Egg)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The Collection screen is reachable from the Garden, with Characters grouped by Egg Family under each family's Egg pattern.
 - [ ] Hatched Characters show in colour with their name, and unhatched ones show as silhouettes.
@@ -13,3 +13,7 @@
 - [ ] After that, Make Star Entry is still accepted and its Stars are banked. No Egg is offered.
 - [ ] If the catalog later contains an Egg Family with unhatched Characters, the core goes back to awaiting a choice with the banked Stars carried over.
 - [ ] The core tests cover: Collection complete, banking after completion, and an added Egg Family becoming choosable with the banked Stars carried over.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

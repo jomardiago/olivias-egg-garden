@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The project builds and runs locally, and the test suite runs with Vitest.
 - [ ] The Garden core accepts a Make Star Entry command and returns the new state plus events (Stars added, 0-star day recorded, Egg hatched, command rejected).
@@ -16,3 +16,7 @@
 - [ ] The Garden screen shows a big star button (hidden on weekends and once today's Star Entry exists), the active Egg with how full it is, and the hatched Characters as placeholders.
 - [ ] The state is saved to IndexedDB after every command and loaded at startup, and a reload keeps everything.
 - [ ] The core tests, written against the public command interface with a fake "today", cover: the ladder, carry-over, 0-star entries, one entry per School Day, and weekend rejection.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

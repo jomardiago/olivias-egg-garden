@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (First Star Entry hatches the first Egg)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] The catalog lists these Egg Families with stable ids, names and pattern descriptions:
   - **Fluffy**: Bun-Bun the bunny, Pip the chick, Mochi the kitten, Hazel the hedgehog, Pudding the puppy.
@@ -19,3 +19,7 @@
 - [ ] Fully hatched families are not offered. When only one family has Characters left, its Egg is chosen automatically.
 - [ ] The UI shows an Egg choice screen with one big Egg per available family. If the app was closed while awaiting a choice, it opens on that screen.
 - [ ] The core tests, with a scripted random function, cover: the random pick only choosing unhatched Characters, carry-over into the chosen Egg (including an immediate hatch), the single-family case, families dropping out once complete, and rejection while awaiting a choice.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

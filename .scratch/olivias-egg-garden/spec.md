@@ -1,6 +1,6 @@
 # Spec: Olivia's Egg Garden
 
-Status: ready-for-agent
+Status: resolved
 
 ## Problem Statement
 
@@ -224,3 +224,7 @@ Behind the Parent Gate, a **Parent Area** lets a parent:
 - Terms come from the root glossary (`GLOSSARY.md`): Star, School Day, Star Entry, Parent Gate, Parent Area, Egg, Egg Family, Hatch Target, Hatch, Character, Collection, Garden.
 - ADR 0001 (local-only storage, no cloud) applies. Backup files are the only safety net against data loss, so the backup and restore round-trip must be dependable.
 - The emotional brief matters as much as the rules. Every Star should feel celebrated, and nothing should ever feel like a loss.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

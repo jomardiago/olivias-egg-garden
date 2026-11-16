@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (First Star Entry hatches the first Egg)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A web app manifest gives the app's name ("Olivia's Egg Garden"), icons (an original egg icon), and full-screen portrait display.
 - [ ] A service worker caches the whole app, so after the first visit it loads and works with no network.
@@ -12,3 +12,7 @@
 - [ ] It installs to the home screen on both iOS Safari and Android Chrome.
 - [ ] The git repo is initialised, with a sensible `.gitignore` and a first commit.
 - [ ] A short README explains how to run it, test it, and deploy it by pushing to a personal GitHub repo and importing that into a personal Vercel account.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

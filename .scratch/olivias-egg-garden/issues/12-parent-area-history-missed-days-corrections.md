@@ -9,7 +9,7 @@ Adding a missed day works like a normal entry: Olivia gets the celebration, and 
 
 **Blocked by:** 02 (Parent Gate approves Star Entries)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] A discreet Parent Area entry point in the Garden opens the Parent Gate first.
 - [ ] The history lists Star Entries newest first, with the date and Stars.
@@ -21,3 +21,7 @@ Adding a missed day works like a normal entry: Olivia gets the celebration, and 
   - Hatched Characters are never removed.
 - [ ] While awaiting an Egg choice, a correction only changes the carried-over Stars, and any Hatch waits until she chooses an Egg. Adding a missed day is rejected until she chooses, the same as a normal Star Entry (per the spec).
 - [ ] The core tests cover: adding a missed day (including one that causes a Hatch), rejection of future, weekend and duplicate dates, corrections up and down, the floor at 0, and never un-hatching.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

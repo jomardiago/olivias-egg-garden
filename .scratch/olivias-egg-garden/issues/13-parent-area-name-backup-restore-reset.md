@@ -10,10 +10,14 @@ Backups are the only safety net against a lost device (ADR 0001), so the backup 
 
 **Blocked by:** 12 (Parent Area: history, missed days, corrections)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Set child name updates the Garden title and the hatch celebrations. An empty name is rejected.
 - [ ] Export backup produces a file the parent can save or share, containing the full Garden state and its schema version.
 - [ ] Restore backup validates the file fully. A valid file replaces the state exactly. An invalid, corrupt or unknown-version file is rejected with a clear message and changes nothing.
 - [ ] Reset asks for confirmation twice, then returns to a fresh Garden with the first Egg at a Hatch Target of 2.
 - [ ] The core tests cover: export then restore giving identical state, invalid backups being rejected with no change, and reset.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

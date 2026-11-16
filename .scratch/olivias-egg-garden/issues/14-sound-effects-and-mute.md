@@ -4,7 +4,7 @@
 
 **Blocked by:** 05 (Egg fill stages and Star celebration), 06 (Hatch celebration), 12 (Parent Area: history, missed days, corrections)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Synthesized effects for:
   - a star landing (a chime that rises with each Star)
@@ -17,3 +17,7 @@
 - [ ] Audio starts on the first user tap, as mobile browsers require.
 - [ ] A mute setting is stored in the Garden state (Set muted), toggled in the Parent Area, and silences every sound.
 - [ ] The sounds are gentle and pleasant at normal phone volume, with nothing harsh or startling.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.

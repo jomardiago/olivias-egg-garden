@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Egg Families and choosing the next Egg)
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] Each Egg Family has its own SVG Egg pattern.
 - [ ] The Egg has four fill stages: still (under 1/3 full), wobbling (1/3 or more), small crack (2/3 or more), and big crack, shown just before a Hatch.
@@ -12,3 +12,7 @@
 - [ ] The 0-star day recorded event plays a gentle, happy wiggle, with nothing sad.
 - [ ] How full the Egg is can be seen without numbers (for example a ring of star slots filling up).
 - [ ] The animation runs only after the state is saved, so closing the app mid-animation loses nothing.
+
+## Comments
+
+Resolved on branch `integration/egg-garden` (2026-11-16). All tests, type check and build pass.
