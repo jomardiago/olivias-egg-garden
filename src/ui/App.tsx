@@ -51,6 +51,10 @@ export function App() {
 
   if (!garden) return <div className="loading" aria-busy="true" />
 
+  const sendCommand = async (command: Command) => {
+    await send(command)
+  }
+
   // A Hatch celebration plays over the Garden before anything else, including the Egg choice,
   // once the Stars have finished flying into the Egg.
   const reveal = currentReveal(celebration)
@@ -61,7 +65,7 @@ export function App() {
           garden={gardenAsShown(garden, celebration, events)}
           today={todayLocal()}
           events={events}
-          onCommand={send}
+          onCommand={sendCommand}
           onOpenCollection={() => setView('collection')}
           onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
         />
@@ -83,13 +87,13 @@ export function App() {
 
   const screen =
     choosable.length > 0 ? (
-      <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={send} />
+      <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={sendCommand} />
     ) : (
       <GardenScreen
         garden={garden}
         today={todayLocal()}
         events={events}
-        onCommand={send}
+        onCommand={sendCommand}
         onOpenCollection={() => setView('collection')}
         onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
       />
