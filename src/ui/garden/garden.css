@@ -210,6 +210,14 @@ main.garden {
 .garden__dock > * { pointer-events: auto; }
 .garden .star-button { width: clamp(120px, 30vw, 150px); height: clamp(120px, 30vw, 150px); }
 .garden .star-button svg { width: 66%; height: 66%; }
+/* The Collection button keeps its place on the left whether or not the star button is showing. */
+.garden__dock .collection-button {
+  position: absolute;
+  left: max(20px, env(safe-area-inset-left));
+  width: clamp(84px, 22vw, 108px);
+  height: clamp(84px, 22vw, 108px);
+  font-size: clamp(2.6rem, 11vw, 3.4rem);
+}
 
 /* Full-screen overlays (star picker, Parent Gate, ...) sit above the meadow and dock. */
 .garden .star-picker, .garden .parent-gate { z-index: 10; }

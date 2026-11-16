@@ -35,16 +35,16 @@ export function GardenScreen({ garden, today, events, onCommand, onOpenCollectio
 
       {/* Big picture buttons along the bottom: the star button in the middle, the Collection button (ticket 11) on its left. */}
       <nav className="garden__dock">
+      <button type="button" className="collection-button" aria-label="Open my Collection" onClick={onOpenCollection}>
+        📖
+      </button>
+
       {canMakeStarEntry(garden, today) && !picking && pendingStars === null && (
         <button type="button" className="star-button" aria-label="Add today's Stars" onClick={() => setPicking(true)}>
           <StarIcon size={88} filled />
         </button>
       )}
       </nav>
-
-      <button type="button" className="collection-button" aria-label="Open my Collection" onClick={onOpenCollection}>
-        📖
-      </button>
 
       {picking && (
         <StarPicker
