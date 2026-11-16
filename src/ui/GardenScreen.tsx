@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { characterArt } from '../catalog/index.ts'
 import { canMakeStarEntry, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
 import { EggView } from './EggView.tsx'
@@ -13,8 +13,8 @@ type Props = {
   onCommand: (command: Command) => Promise<void>
   onOpenCollection: () => void
   /**
-   * Called once the Stars of a Stars added event have landed in the Egg; a
-   * Hatch celebration waits for it. Ticket 05: call it when the star flight ends.
+   * Called once the Stars of a Stars added event have all flown into the Egg
+   * (its star celebration has finished); a Hatch celebration waits for it.
    */
   onStarsLanded?: () => void
 }
@@ -23,11 +23,6 @@ export function GardenScreen({ garden, today, events, onCommand, onOpenCollectio
   const [picking, setPicking] = useState(false)
   const [pendingStars, setPendingStars] = useState<number | null>(null)
   const hatched = events.find((e) => e.type === 'EggHatched')
-
-  useEffect(() => {
-    if (events.some((e) => e.type === 'StarsAdded')) onStarsLanded?.()
-    // Only for a fresh set of events.
-  }, [events])
 
   return (
     <main className="garden">
@@ -45,7 +40,7 @@ export function GardenScreen({ garden, today, events, onCommand, onOpenCollectio
       </section>
 
       <section className="garden__nest" aria-label="Egg">
-        {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} />}
+        {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} events={events} onCelebrationEnd={onStarsLanded} />}
       </section>
 
       {canMakeStarEntry(garden, today) && !picking && pendingStars === null && (
