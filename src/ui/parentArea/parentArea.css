@@ -1,0 +1,92 @@
+/* The discreet way in: small and faint in the top corner of the child's screens. */
+.parent-area-entry {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top));
+  right: 8px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: rgb(59 47 85 / 0.28);
+  z-index: 5;
+}
+
+/* The Parent Area itself: plain, readable, adult-facing. */
+.parent-area {
+  min-height: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+  background: #fff;
+  color: #2b2438;
+  font-size: 17px;
+  user-select: text;
+}
+
+.parent-area h1 { margin: 0; font-size: 24px; }
+.parent-area h2 { margin: 0 0 8px; font-size: 19px; }
+
+.parent-area__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.parent-area__message { min-height: 1.4em; margin: 12px 0 4px; color: #6a4fb3; font-weight: 600; }
+
+.parent-area__section { padding: 16px 0; border-top: 1px solid #e6e1ef; }
+.parent-area__hint { margin: 0 0 12px; color: #6b6478; font-size: 15px; }
+
+.parent-area__form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.parent-area__field { display: flex; flex-direction: column; gap: 4px; font-size: 15px; }
+.parent-area__field input {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid #c2bcd4;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 17px;
+}
+
+.parent-area__button {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #c2bcd4;
+  border-radius: 10px;
+  background: #fff;
+  color: #2b2438;
+  font-size: 16px;
+}
+.parent-area__button--primary { background: #6a4fb3; border-color: #6a4fb3; color: #fff; }
+.parent-area__button:disabled { opacity: 0.45; }
+
+.parent-area__choice { display: flex; gap: 6px; }
+.parent-area__choice-option {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #c2bcd4;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 18px;
+  font-weight: 600;
+}
+.parent-area__choice-option[aria-checked='true'] { background: #f5c400; border-color: #e0a800; }
+
+.parent-area__history { list-style: none; margin: 0; padding: 0; }
+.parent-area__entry {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0edf5;
+}
+.parent-area__date { flex: 1 1 140px; font-variant-numeric: tabular-nums; }
+.parent-area__stars { color: #e0a800; font-size: 20px; letter-spacing: 2px; }
+.parent-area__stars-empty { color: #d8d2e4; }
+.parent-area__edit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

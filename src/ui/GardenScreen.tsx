@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { canMakeStarEntry, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
 import { EggView } from './EggView.tsx'
 import { GardenScene } from './garden/GardenScene.tsx'
@@ -13,14 +13,24 @@ type Props = {
   garden: Garden
   today: LocalDate
   events: GardenEvent[]
-  onCommand: (command: Command) => Promise<void>
+  onCommand: (command: Command) => Promise<unknown>
   onOpenCollection: () => void
+  /**
+   * Called once the Stars of a Stars added event have landed in the Egg; a
+   * Hatch celebration waits for it. Ticket 05: call it when the star flight ends.
+   */
+  onStarsLanded?: () => void
 }
 
-export function GardenScreen({ garden, today, events, onCommand, onOpenCollection }: Props) {
+export function GardenScreen({ garden, today, events, onCommand, onOpenCollection, onStarsLanded }: Props) {
   const [picking, setPicking] = useState(false)
   const [pendingStars, setPendingStars] = useState<number | null>(null)
   const hatched = events.find((e) => e.type === 'EggHatched')
+
+  useEffect(() => {
+    if (events.some((e) => e.type === 'StarsAdded')) onStarsLanded?.()
+    // Only for a fresh set of events.
+  }, [events])
 
   return (
     <main className="garden">
