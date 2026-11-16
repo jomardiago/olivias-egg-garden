@@ -5,7 +5,7 @@ import type { Command } from '../garden/index.ts'
 type Props = {
   childName: string
   familyIds: string[]
-  onCommand: (command: Command) => Promise<void>
+  onCommand: (command: Command) => Promise<unknown>
 }
 
 /** One big Egg per available Egg Family; tapping one chooses it. The Character inside stays a surprise. */

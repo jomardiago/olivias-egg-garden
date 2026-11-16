@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { characterArt } from '../catalog/index.ts'
 import { canMakeStarEntry, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
 import { EggView } from './EggView.tsx'
+import { GardenScene } from './garden/GardenScene.tsx'
+import { Meadow } from './garden/Meadow.tsx'
+import { Nest } from './garden/Nest.tsx'
+import './garden/garden.css'
 import { ParentGate } from './parentGate/ParentGate.tsx'
 import { StarIcon } from './StarIcon.tsx'
 import { StarPicker } from './StarPicker.tsx'
@@ -10,7 +13,7 @@ type Props = {
   garden: Garden
   today: LocalDate
   events: GardenEvent[]
-  onCommand: (command: Command) => Promise<void>
+  onCommand: (command: Command) => Promise<unknown>
   onOpenCollection: () => void
   /**
    * Called once the Stars of a Stars added event have all flown into the Egg
@@ -26,32 +29,27 @@ export function GardenScreen({ garden, today, events, onCommand, onOpenCollectio
 
   return (
     <main className="garden">
+      <GardenScene />
       <h1 className="garden__title">{garden.childName}'s Egg Garden</h1>
 
-      <section className="garden__characters" aria-label="Hatched Characters">
-        {garden.hatchedCharacters.map(({ characterId }) => {
-          const Art = characterArt(characterId)
-          return (
-            <div key={characterId} className={hatched?.characterId === characterId ? 'just-hatched' : undefined}>
-              <Art characterId={characterId} />
-            </div>
-          )
-        })}
-      </section>
+      <Meadow characterIds={garden.hatchedCharacters.map((c) => c.characterId)} justHatchedId={hatched?.characterId}>
+        <Nest hasEgg={garden.activeEgg.status === 'egg'}>
+          {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} events={events} onCelebrationEnd={onStarsLanded} />}
+        </Nest>
+      </Meadow>
 
-      <section className="garden__nest" aria-label="Egg">
-        {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} events={events} onCelebrationEnd={onStarsLanded} />}
-      </section>
+      {/* Big picture buttons along the bottom: the star button in the middle, the Collection button (ticket 11) on its left. */}
+      <nav className="garden__dock">
+      <button type="button" className="collection-button" aria-label="Open my Collection" onClick={onOpenCollection}>
+        📖
+      </button>
 
       {canMakeStarEntry(garden, today) && !picking && pendingStars === null && (
         <button type="button" className="star-button" aria-label="Add today's Stars" onClick={() => setPicking(true)}>
           <StarIcon size={88} filled />
         </button>
       )}
-
-      <button type="button" className="collection-button" aria-label="Open my Collection" onClick={onOpenCollection}>
-        📖
-      </button>
+      </nav>
 
       {picking && (
         <StarPicker
