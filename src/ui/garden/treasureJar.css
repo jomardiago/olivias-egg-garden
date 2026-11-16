@@ -1,0 +1,52 @@
+/* The golden treasure jar that holds banked Stars once the Collection is complete. */
+
+.treasure-jar {
+  position: relative;
+  width: var(--jar-size);
+  height: var(--jar-size);
+  display: grid;
+  place-items: end center;
+  z-index: 1;
+}
+
+.treasure-jar__body {
+  position: relative;
+  transform-origin: 50% 100%;
+}
+.treasure-jar__body--pop { animation: jar-pop 0.45s ease-out; }
+
+.treasure-jar__stars {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  width: 80px;
+  height: 80px;
+  transform: translateX(-50%);
+}
+.treasure-jar__star {
+  position: absolute;
+  left: calc(var(--col) * 20px - 2px);
+  bottom: calc(var(--row) * 18px);
+}
+
+.treasure-jar__glow {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 226 110 / 0.75), transparent 65%);
+  animation: jar-glow 0.9s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes jar-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.1, 0.92); }
+  60% { transform: scale(0.96, 1.06); }
+  100% { transform: scale(1); }
+}
+
+@keyframes jar-glow {
+  0% { opacity: 0; transform: scale(0.6); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.4); }
+}

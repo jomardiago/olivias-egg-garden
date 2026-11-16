@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { canMakeStarEntry, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
+import { canMakeStarEntry, bankedStars, hasActiveEgg, isCollectionComplete, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
 import { EggView } from './EggView.tsx'
 import { GardenScene } from './garden/GardenScene.tsx'
 import { Meadow } from './garden/Meadow.tsx'
 import { Nest } from './garden/Nest.tsx'
+import { TreasureJar } from './garden/TreasureJar.tsx'
 import './garden/garden.css'
 import { ParentGate } from './parentGate/ParentGate.tsx'
 import { StarIcon } from './StarIcon.tsx'
@@ -33,12 +34,13 @@ export function GardenScreen({ garden, today, events, onCommand, onOpenCollectio
       <h1 className="garden__title">{garden.childName}'s Egg Garden</h1>
 
       <Meadow characterIds={garden.hatchedCharacters.map((c) => c.characterId)} justHatchedId={hatched?.characterId}>
-        <Nest hasEgg={garden.activeEgg.status === 'egg'}>
-          {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} events={events} onCelebrationEnd={onStarsLanded} />}
+        <Nest hasEgg={hasActiveEgg(garden)}>
+          {hasActiveEgg(garden) && <EggView egg={garden.activeEgg} events={events} onCelebrationEnd={onStarsLanded} />}
+          {isCollectionComplete(garden) && <TreasureJar bankedStars={bankedStars(garden)} events={events} />}
         </Nest>
       </Meadow>
 
-      {/* Big picture buttons along the bottom: the star button in the middle, the Collection button (ticket 11) on its left. */}
+      {/* Big picture buttons along the bottom: the star button in the middle, the Collection button on its left. */}
       <nav className="garden__dock">
       <button type="button" className="collection-button" aria-label="Open my Collection" onClick={onOpenCollection}>
         📖
