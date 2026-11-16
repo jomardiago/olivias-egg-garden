@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { availableEggFamilies, createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
 import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
 import { CollectionCompleteCelebration } from './CollectionCompleteCelebration.tsx'
 import { CollectionScreen } from './CollectionScreen.tsx'
 import { EggChoiceScreen } from './EggChoiceScreen.tsx'
 import { GardenScreen } from './GardenScreen.tsx'
+import { celebrate, currentReveal, gardenAsShown, NO_CELEBRATION } from './hatch/hatchCelebration.ts'
+import { HatchCelebration } from './hatch/HatchCelebration.tsx'
 import { todayLocal } from './today.ts'
 
 /**
@@ -16,6 +18,7 @@ export function App() {
   const [garden, setGarden] = useState<Garden | null>(null)
   const [events, setEvents] = useState<GardenEvent[]>([])
   const gardenRef = useRef<Garden | null>(null)
+  const [celebration, signalCelebration] = useReducer(celebrate, NO_CELEBRATION)
   const [view, setView] = useState<'garden' | 'collection'>('garden')
   const [celebrating, setCelebrating] = useState(false)
 
@@ -37,10 +40,33 @@ export function App() {
     gardenRef.current = result.garden
     setGarden(result.garden)
     setEvents(result.events)
+    signalCelebration({ type: 'events', events: result.events })
+    // Shown once any Hatch celebration has finished.
     if (result.events.some((e) => e.type === 'CollectionComplete')) setCelebrating(true)
   }, [])
 
   if (!garden) return <div className="loading" aria-busy="true" />
+
+  // A Hatch celebration plays over the Garden before anything else, including the Egg choice,
+  // once the Stars have finished flying into the Egg.
+  const reveal = currentReveal(celebration)
+  if (reveal) {
+    return (
+      <>
+        <GardenScreen
+          garden={gardenAsShown(garden, celebration, events)}
+          today={todayLocal()}
+          events={events}
+          onCommand={send}
+          onOpenCollection={() => setView('collection')}
+          onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
+        />
+        {reveal.phase !== 'waitForStars' && (
+          <HatchCelebration key={reveal.characterId} reveal={reveal} childName={garden.childName} onSignal={signalCelebration} />
+        )}
+      </>
+    )
+  }
 
   // Also covers reopening the app after closing it before choosing.
   const choosable = garden.activeEgg.status === 'awaitingChoice' ? availableEggFamilies(garden) : []
@@ -52,7 +78,14 @@ export function App() {
 
   return (
     <>
-      <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} onOpenCollection={() => setView('collection')} />
+      <GardenScreen
+        garden={garden}
+        today={todayLocal()}
+        events={events}
+        onCommand={send}
+        onOpenCollection={() => setView('collection')}
+        onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
+      />
       {celebrating && <CollectionCompleteCelebration garden={garden} onDone={() => setCelebrating(false)} />}
     </>
   )
