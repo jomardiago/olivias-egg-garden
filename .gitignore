@@ -4,3 +4,4 @@ coverage/
 *.local
 .vite/
 .claude/worktrees/
+dev-dist/
