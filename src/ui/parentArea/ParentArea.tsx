@@ -27,7 +27,7 @@ export function ParentArea({ garden, today, onCommand, onClose }: Props) {
       setMessage(rejectionText(rejection.reason, garden.childName))
       return false
     }
-    if (events.some((e) => e.type === 'StarsAdded' || e.type === 'ZeroStarDayRecorded' || e.type === 'EggHatched')) {
+    if (events.some((e) => e.type === 'StarsAdded' || e.type === 'StarsBanked' || e.type === 'ZeroStarDayRecorded' || e.type === 'EggHatched')) {
       onClose()
       return true
     }
