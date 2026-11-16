@@ -9,6 +9,7 @@ import { celebrate, currentReveal, gardenAsShown, NO_CELEBRATION } from './hatch
 import { HatchCelebration } from './hatch/HatchCelebration.tsx'
 import { ParentArea } from './parentArea/ParentArea.tsx'
 import { ParentAreaEntry } from './parentArea/ParentAreaEntry.tsx'
+import { cuesForEvents, hatchPhaseCue, sound } from '../sound/index.ts'
 import { todayLocal } from './today.ts'
 
 /**
@@ -24,6 +25,18 @@ export function App() {
   const [celebration, signalCelebration] = useReducer(celebrate, NO_CELEBRATION)
   const [view, setView] = useState<'garden' | 'collection'>('garden')
   const [celebrating, setCelebrating] = useState(false)
+
+  // Browsers only allow audio after a user tap.
+  useEffect(() => {
+    const unlock = () => sound.unlock()
+    window.addEventListener('pointerdown', unlock, { capture: true })
+    return () => window.removeEventListener('pointerdown', unlock, { capture: true })
+  }, [])
+
+  const muted = garden?.muted ?? false
+  useEffect(() => {
+    sound.setMuted(muted)
+  }, [muted])
 
   useEffect(() => {
     void (async () => {
@@ -44,6 +57,7 @@ export function App() {
     setGarden(result.garden)
     setEvents(result.events)
     signalCelebration({ type: 'events', events: result.events })
+    for (const cue of cuesForEvents(result.events)) sound.play(cue)
     // Shown once any Hatch celebration has finished.
     if (result.events.some((e) => e.type === 'CollectionComplete')) setCelebrating(true)
     return result.events
@@ -70,7 +84,12 @@ export function App() {
           onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
         />
         {reveal.phase !== 'waitForStars' && (
-          <HatchCelebration key={reveal.characterId} reveal={reveal} childName={garden.childName} onSignal={signalCelebration} />
+          <HatchCelebration key={reveal.characterId} reveal={reveal} childName={garden.childName} onSignal={signalCelebration}
+            onPhaseStart={(phase, r) => {
+              const cue = hatchPhaseCue(phase, r.characterId)
+              if (cue) sound.play(cue)
+            }}
+          />
         )}
       </>
     )

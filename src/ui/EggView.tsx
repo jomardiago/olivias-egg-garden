@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { eggPattern } from '../catalog/index.ts'
 import { eggStage, type Egg, type GardenEvent } from '../garden/index.ts'
+import { sound } from '../sound/index.ts'
 import { celebrationFor } from './celebration/celebration.ts'
 import { SlotStar } from './celebration/SlotStar.tsx'
 import './celebration/celebration.css'
@@ -60,7 +61,15 @@ export function EggView({ egg, events = NO_EVENTS, eggStarsBefore, onCelebration
           setPlayed((p) => ({ ...p, flying: true }))
         })
         t += FLIGHT_MS
-        at(t, () => setPlayed((p) => ({ ...p, flying: false, landed: i + 1 })))
+        at(t, () => {
+          setPlayed((p) => ({ ...p, flying: false, landed: i + 1 }))
+          // Each Star's chime rises with how full the Egg now is; a new stage adds a wobble or crack.
+          const landing = celebration.landings[i]
+          const before = i === 0 ? celebration.from : celebration.landings[i - 1]
+          sound.play({ type: 'starLanded', index: Math.max(0, (landing?.eggStars ?? 1) - 1) })
+          if (landing && before && landing.stage !== before.stage) sound.play({ type: 'eggCrack' }, 0.15)
+          else sound.play({ type: 'eggWobble' }, 0.15)
+        })
         t += BETWEEN_STARS_MS
       })
       at(t + SETTLE_MS, finish)

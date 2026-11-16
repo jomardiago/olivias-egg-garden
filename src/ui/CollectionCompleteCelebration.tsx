@@ -1,11 +1,17 @@
+import { useEffect } from 'react'
 import { characterArt } from '../catalog/index.ts'
 import type { Garden } from '../garden/index.ts'
+import { sound } from '../sound/index.ts'
 import './collection.css'
 
 const CONFETTI_COLOURS = ['#ff7aa2', '#ffd36e', '#9ee2c9', '#b9a7ff', '#8fd3ff']
 
 /** The big celebration when every Character has hatched: all of them dance together under a shower of confetti. */
 export function CollectionCompleteCelebration({ garden, onDone }: { garden: Garden; onDone: () => void }) {
+  useEffect(() => {
+    sound.play({ type: 'collectionComplete' })
+  }, [])
+
   return (
     <div className="collection-complete" role="dialog" aria-label="Collection complete!" onClick={onDone}>
       <div className="collection-complete__confetti" aria-hidden="true">

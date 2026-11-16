@@ -67,6 +67,14 @@ export function ParentArea({ garden, today, onCommand, onClose }: Props) {
           </ul>
         )}
       </section>
+
+      <section className="parent-area__section" aria-labelledby="sound-heading">
+        <h2 id="sound-heading">Sound</h2>
+        <label className="parent-area__checkbox">
+          <input type="checkbox" checked={garden.muted} onChange={(e) => void onCommand({ type: 'SetMuted', muted: e.target.checked })} />
+          Mute all sound
+        </label>
+      </section>
     </main>
   )
 }

@@ -90,3 +90,6 @@
 .parent-area__stars { color: #e0a800; font-size: 20px; letter-spacing: 2px; }
 .parent-area__stars-empty { color: #d8d2e4; }
 .parent-area__edit { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+.parent-area__checkbox { display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; min-height: 44px; }
+.parent-area__checkbox input { width: 1.6rem; height: 1.6rem; }
