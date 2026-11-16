@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { exportBackup, starEntryHistory, type Command, type Garden, type GardenEvent, type LocalDate, type RejectionReason } from '../../garden/index.ts'
+import { exportBackup, latestMissedDay, MAX_STARS, starEntryHistory, starsRange, utcDate, type Command, type Garden, type GardenEvent, type LocalDate, type RejectionReason } from '../../garden/index.ts'
 import './parentArea.css'
 
 type Props = {
@@ -231,7 +231,7 @@ function MissedDayForm({ today, onAdd }: { today: LocalDate; onAdd: (date: Local
       >
         <label className="parent-area__field">
           Date
-          <input type="date" value={date} max={dayBefore(today)} required onChange={(e) => setDate(e.target.value)} />
+          <input type="date" value={date} max={latestMissedDay(today)} required onChange={(e) => setDate(e.target.value)} />
         </label>
         <StarsChoice label="Stars" value={stars} onChange={setStars} />
         <button type="submit" className="parent-area__button parent-area__button--primary" disabled={!date}>
@@ -252,7 +252,7 @@ function HistoryRow({ date, stars, onCorrect }: { date: LocalDate; stars: number
         <>
           <span className="parent-area__stars" aria-label={starsText(stars)}>
             {'★'.repeat(stars)}
-            <span className="parent-area__stars-empty">{'☆'.repeat(3 - stars)}</span>
+            <span className="parent-area__stars-empty">{'☆'.repeat(MAX_STARS - stars)}</span>
           </span>
           <button type="button" className="parent-area__button" onClick={() => setEditing(stars)}>
             Change
@@ -282,7 +282,7 @@ function HistoryRow({ date, stars, onCorrect }: { date: LocalDate; stars: number
 function StarsChoice({ label, value, onChange }: { label: string; value: number; onChange: (stars: number) => void }) {
   return (
     <div className="parent-area__choice" role="radiogroup" aria-label={label}>
-      {[0, 1, 2, 3].map((n) => (
+      {starsRange().map((n) => (
         <button
           key={n}
           type="button"
@@ -320,7 +320,7 @@ function rejectionText(reason: RejectionReason, childName: string): string {
     case 'InvalidDate':
       return 'That is not a valid date.'
     case 'StarsOutOfRange':
-      return 'Stars must be 0, 1, 2 or 3.'
+      return `Stars must be ${starsRange().join(', ')}.`
     default:
       return 'That could not be saved.'
   }
@@ -330,17 +330,7 @@ function starsText(stars: number): string {
   return `${stars} Star${stars === 1 ? '' : 's'}`
 }
 
-function utcDate(date: LocalDate): Date {
-  const [y, m, d] = date.split('-').map(Number)
-  return new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1))
-}
-
 function formatDate(date: LocalDate): string {
   return utcDate(date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
 }
 
-function dayBefore(date: LocalDate): LocalDate {
-  const d = utcDate(date)
-  d.setUTCDate(d.getUTCDate() - 1)
-  return d.toISOString().slice(0, 10)
-}

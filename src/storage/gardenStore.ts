@@ -12,7 +12,7 @@ const KEY = 'current'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
-function db(): Promise<IDBPDatabase> {
+function openGardenDb(): Promise<IDBPDatabase> {
   dbPromise ??= openDB(DB_NAME, 1, {
     upgrade(database) {
       database.createObjectStore(STORE)
@@ -22,11 +22,11 @@ function db(): Promise<IDBPDatabase> {
 }
 
 export async function loadGarden(): Promise<Garden | null> {
-  return ((await (await db()).get(STORE, KEY)) as Garden | undefined) ?? null
+  return ((await (await openGardenDb()).get(STORE, KEY)) as Garden | undefined) ?? null
 }
 
 export async function saveGarden(garden: Garden): Promise<void> {
-  await (await db()).put(STORE, garden, KEY)
+  await (await openGardenDb()).put(STORE, garden, KEY)
 }
 
 /** Asks the browser to keep the data permanently; carries on whether or not it's granted. */

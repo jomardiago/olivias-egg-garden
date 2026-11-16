@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { starsRange } from '../garden/index.ts'
 import { StarIcon } from './StarIcon.tsx'
 
 type Props = {
@@ -13,7 +14,7 @@ export function StarPicker({ onConfirm, onCancel }: Props) {
   return (
     <div className="star-picker" role="dialog" aria-label="Choose your Stars">
       <div className="star-picker__stars">
-        {[1, 2, 3].map((n) => (
+        {starsRange(1).map((n) => (
           <button
             key={n}
             type="button"
