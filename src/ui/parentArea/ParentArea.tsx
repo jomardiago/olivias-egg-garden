@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { starEntryHistory, type Command, type Garden, type GardenEvent, type LocalDate, type RejectionReason } from '../../garden/index.ts'
+import { exportBackup, starEntryHistory, type Command, type Garden, type GardenEvent, type LocalDate, type RejectionReason } from '../../garden/index.ts'
 import './parentArea.css'
 
 type Props = {
@@ -75,7 +75,142 @@ export function ParentArea({ garden, today, onCommand, onClose }: Props) {
           Mute all sound
         </label>
       </section>
+
+      <ChildNameForm key={garden.childName} name={garden.childName} onSave={(name) => run({ type: 'SetChildName', name }, `The name is now ${name.trim()}.`)} />
+
+      <BackupSection
+        garden={garden}
+        today={today}
+        onRestore={(backup) => run({ type: 'RestoreBackup', backup }, 'Backup restored. Everything is back exactly as it was saved.')}
+        onFileProblem={setMessage}
+      />
+
+      <ResetSection onReset={() => run({ type: 'Reset' }, 'Everything was reset. A fresh Garden is ready.')} />
     </main>
+  )
+}
+
+function ChildNameForm({ name, onSave }: { name: string; onSave: (name: string) => Promise<boolean> }) {
+  const [value, setValue] = useState(name)
+
+  return (
+    <section className="parent-area__section" aria-labelledby="name-heading">
+      <h2 id="name-heading">Child’s name</h2>
+      <p className="parent-area__hint">Shown in the Garden title and the hatch celebrations.</p>
+      <form
+        className="parent-area__form"
+        onSubmit={async (e) => {
+          e.preventDefault()
+          await onSave(value)
+        }}
+      >
+        <label className="parent-area__field">
+          Name
+          <input type="text" value={value} onChange={(e) => setValue(e.target.value)} />
+        </label>
+        <button type="submit" className="parent-area__button parent-area__button--primary" disabled={value.trim() === '' || value.trim() === name}>
+          Save name
+        </button>
+      </form>
+    </section>
+  )
+}
+
+function BackupSection({
+  garden,
+  today,
+  onRestore,
+  onFileProblem,
+}: {
+  garden: Garden
+  today: LocalDate
+  onRestore: (backup: string) => Promise<boolean>
+  onFileProblem: (message: string) => void
+}) {
+  const saveBackup = () => {
+    const url = URL.createObjectURL(new Blob([exportBackup(garden)], { type: 'application/json' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `olivias-egg-garden-backup-${today}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <section className="parent-area__section" aria-labelledby="backup-heading">
+      <h2 id="backup-heading">Backup</h2>
+      <p className="parent-area__hint">
+        Everything lives only on this device. Save a backup file now and then and keep it somewhere safe, so a lost device does not lose the Collection.
+      </p>
+      <div className="parent-area__form">
+        <button type="button" className="parent-area__button parent-area__button--primary" onClick={saveBackup}>
+          Save backup
+        </button>
+        <label className="parent-area__field">
+          Restore from a backup file (replaces everything now in the app)
+          <input
+            type="file"
+            accept="application/json,.json"
+            onChange={async (e) => {
+              const input = e.target
+              const file = input.files?.[0]
+              if (!file) return
+              try {
+                await onRestore(await file.text())
+              } catch {
+                onFileProblem('That file could not be read. Nothing was changed.')
+              }
+              input.value = ''
+            }}
+          />
+        </label>
+      </div>
+    </section>
+  )
+}
+
+function ResetSection({ onReset }: { onReset: () => Promise<boolean> }) {
+  const [step, setStep] = useState<0 | 1 | 2>(0)
+
+  return (
+    <section className="parent-area__section" aria-labelledby="reset-heading">
+      <h2 id="reset-heading">Reset everything</h2>
+      <p className="parent-area__hint">Deletes all Star Entries, Eggs and the Collection and starts a fresh Garden. Save a backup first if you may want it back.</p>
+      {step === 0 && (
+        <button type="button" className="parent-area__button parent-area__button--danger" onClick={() => setStep(1)}>
+          Reset everything…
+        </button>
+      )}
+      {step === 1 && (
+        <div className="parent-area__form" role="alertdialog" aria-label="Confirm reset">
+          <strong>Are you sure you want to reset everything?</strong>
+          <button type="button" className="parent-area__button parent-area__button--danger" onClick={() => setStep(2)}>
+            Yes, continue
+          </button>
+          <button type="button" className="parent-area__button" onClick={() => setStep(0)}>
+            No, keep everything
+          </button>
+        </div>
+      )}
+      {step === 2 && (
+        <div className="parent-area__form" role="alertdialog" aria-label="Final confirmation">
+          <strong>Last check: this cannot be undone. Really reset everything?</strong>
+          <button
+            type="button"
+            className="parent-area__button parent-area__button--danger"
+            onClick={async () => {
+              await onReset()
+              setStep(0)
+            }}
+          >
+            Yes, reset everything
+          </button>
+          <button type="button" className="parent-area__button" onClick={() => setStep(0)}>
+            No, keep everything
+          </button>
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -176,6 +311,12 @@ function rejectionText(reason: RejectionReason, childName: string): string {
       return `${childName} needs to choose her next Egg first. Then you can add the missed day.`
     case 'NoStarEntryOnDate':
       return 'That day has no Star Entry to change.'
+    case 'EmptyName':
+      return 'Please type a name.'
+    case 'BackupCorrupt':
+      return 'That file is not a valid Egg Garden backup. Nothing was changed.'
+    case 'BackupUnknownVersion':
+      return 'That backup was made by a different version of the app and cannot be used here. Nothing was changed.'
     case 'InvalidDate':
       return 'That is not a valid date.'
     case 'StarsOutOfRange':

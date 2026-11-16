@@ -52,6 +52,12 @@ export type Command =
   | { type: 'AddMissedStarEntry'; date: LocalDate; stars: number }
   /** Parent Area: change the Stars of an existing Star Entry. Never un-hatches a Character. */
   | { type: 'CorrectStarEntry'; date: LocalDate; stars: number }
+  /** Parent Area: the name shown in the Garden title and the hatch celebrations. */
+  | { type: 'SetChildName'; name: string }
+  /** Parent Area: replace everything with the Garden saved in a backup file (its text). */
+  | { type: 'RestoreBackup'; backup: string }
+  /** Parent Area: start over with a fresh Garden. The UI asks for confirmation twice first. */
+  | { type: 'Reset' }
 
 export type GardenEvent =
   /** Parent Area: sound was switched off (`muted`) or on. */
@@ -70,6 +76,9 @@ export type GardenEvent =
   | { type: 'CollectionComplete'; bankedStars: number }
   /** After Collection complete, a Star Entry's Stars were banked; `bankedStars` is the new total. */
   | { type: 'StarsBanked'; stars: number; bankedStars: number }
+  | { type: 'ChildNameSet'; name: string }
+  | { type: 'BackupRestored' }
+  | { type: 'GardenReset' }
   | { type: 'CommandRejected'; reason: RejectionReason }
 
 export type RejectionReason =
@@ -84,6 +93,11 @@ export type RejectionReason =
   /** A past School Day that already has its one Star Entry. */
   | 'AlreadyEntered'
   | 'NoStarEntryOnDate'
+  | 'EmptyName'
+  /** The backup file is not a readable Garden: not JSON, or its contents do not add up. */
+  | 'BackupCorrupt'
+  /** The backup file was made by a version of the app this one does not know. */
+  | 'BackupUnknownVersion'
 
 export type Deps = {
   /** Today's device-local date. */
@@ -172,7 +186,92 @@ export function handle(garden: Garden, command: Command, deps: Deps): Result {
       return addMissedStarEntry(garden, command.date, command.stars, deps)
     case 'CorrectStarEntry':
       return correctStarEntry(garden, command.date, command.stars, deps)
+    case 'SetChildName':
+      return setChildName(garden, command.name)
+    case 'RestoreBackup':
+      return restoreBackup(garden, command.backup, deps)
+    case 'Reset':
+      return { garden: createGarden(deps.random, deps.catalog), events: [{ type: 'GardenReset' }] }
   }
+}
+
+function setChildName(garden: Garden, name: string): Result {
+  const trimmed = name.trim()
+  if (trimmed === '') return rejected(garden, 'EmptyName')
+  return { garden: { ...garden, childName: trimmed }, events: [{ type: 'ChildNameSet', name: trimmed }] }
+}
+
+/** The backup file's text: the whole Garden state, including its schema version. */
+export function exportBackup(garden: Garden): string {
+  return JSON.stringify(garden, null, 2)
+}
+
+function restoreBackup(garden: Garden, backup: string, deps: Deps): Result {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(backup)
+  } catch {
+    return rejected(garden, 'BackupCorrupt')
+  }
+  if (!isRecord(parsed)) return rejected(garden, 'BackupCorrupt')
+  if (parsed.schemaVersion !== 1) return rejected(garden, 'BackupUnknownVersion')
+  const restored = readGarden(parsed, deps.catalog ?? LAUNCH_CATALOG)
+  if (!restored) return rejected(garden, 'BackupCorrupt')
+  return { garden: restored, events: [{ type: 'BackupRestored' }] }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isCount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0
+}
+
+/** Fully validates a parsed backup; returns a clean Garden (no extra fields), or null if anything is off. */
+function readGarden(data: Record<string, unknown>, catalog: Catalog): Garden | null {
+  const { childName, muted, starEntries, hatchedCharacters, eggsHatched } = data
+  if (typeof childName !== 'string' || childName.trim() === '') return null
+  if (typeof muted !== 'boolean') return null
+  if (!isCount(eggsHatched)) return null
+  if (!Array.isArray(starEntries) || !Array.isArray(hatchedCharacters)) return null
+
+  const entries: StarEntry[] = []
+  const seenDates = new Set<string>()
+  for (const entry of starEntries) {
+    if (!isRecord(entry) || typeof entry.date !== 'string' || !isCalendarDate(entry.date)) return null
+    if (typeof entry.stars !== 'number' || !isValidStars(entry.stars) || seenDates.has(entry.date)) return null
+    seenDates.add(entry.date)
+    entries.push({ date: entry.date, stars: entry.stars })
+  }
+
+  const knownCharacters = new Set(catalog.flatMap((family) => family.characters.map((c) => c.id)))
+  const hatched: HatchedCharacter[] = []
+  const seenCharacters = new Set<string>()
+  for (const item of hatchedCharacters) {
+    if (!isRecord(item) || typeof item.characterId !== 'string' || typeof item.hatchedOn !== 'string') return null
+    if (!knownCharacters.has(item.characterId) || seenCharacters.has(item.characterId) || !isCalendarDate(item.hatchedOn)) return null
+    seenCharacters.add(item.characterId)
+    hatched.push({ characterId: item.characterId, hatchedOn: item.hatchedOn })
+  }
+
+  const activeEgg = readActiveEgg(data.activeEgg, catalog)
+  if (!activeEgg) return null
+  return { schemaVersion: 1, childName: childName.trim(), muted, starEntries: entries, hatchedCharacters: hatched, eggsHatched, activeEgg }
+}
+
+function readActiveEgg(value: unknown, catalog: Catalog): ActiveEgg | null {
+  if (!isRecord(value)) return null
+  if (value.status === 'awaitingChoice') {
+    return isCount(value.carriedOverStars) ? { status: 'awaitingChoice', carriedOverStars: value.carriedOverStars } : null
+  }
+  if (value.status !== 'egg') return null
+  const { familyId, characterId, hatchTarget, stars } = value
+  if (typeof familyId !== 'string' || typeof characterId !== 'string') return null
+  const family = catalog.find((f) => f.id === familyId)
+  if (!family || !family.characters.some((c) => c.id === characterId)) return null
+  if (!isCount(hatchTarget) || hatchTarget < 1 || !isCount(stars) || stars >= hatchTarget) return null
+  return { status: 'egg', familyId, characterId, hatchTarget, stars }
 }
 
 function chooseEgg(garden: Garden, familyId: string, deps: Deps): Result {
