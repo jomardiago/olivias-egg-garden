@@ -1,0 +1,158 @@
+/*
+ * Sparkly Egg Family animations (see sparkly.tsx).
+ * Idle: the whole <svg> floats (a compositor-only transform), plus one or two
+ * small part motions. Dance: `.sparkly--dance` swaps in each Character's own
+ * keyframes; their lengths match `danceMs` in sparkly.tsx.
+ * Only the animated parts get `transform-box: fill-box`, so the static
+ * `transform` attributes in the art keep their meaning.
+ */
+
+.sparkly { overflow: visible; }
+
+.sparkly--idle { animation: sparkly-float 3.2s ease-in-out infinite; }
+.sparkly--puff.sparkly--idle { animation-duration: 2.6s; }
+
+.sparkly__actor,
+.sparkly__sparkle,
+.sparkly__shadow,
+.tw-tail, .tw-horn, .tw-burst__star,
+.em-wing-l, .em-tail, .em-puff,
+.gl-wing-l, .gl-tail, .gl-gem, .gl-trail__star,
+.pf-body, .pf-arm-l, .pf-arm-r, .pf-rainbow, .pf-drops,
+.pp-wing-l, .pp-tail, .pp-crown, .pp-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.sparkly__actor { transform-origin: center bottom; }
+
+/* sparkles twinkle in turn around every awake Character */
+.sparkly__sparkle { animation: sparkly-twinkle 2.1s ease-in-out infinite; opacity: 0; }
+
+/* dance-only effects stay hidden until their dance */
+.tw-burst__star, .em-puff, .gl-trail__star, .pf-rainbow, .pf-drops, .pp-heart { opacity: 0; }
+
+/* ---------- idle part motions ---------- */
+.sparkly--idle .tw-tail { transform-origin: left bottom; animation: sparkly-sway 3s ease-in-out infinite; }
+.sparkly--idle .tw-horn { animation: sparkly-glint 3.4s ease-in-out infinite; }
+.sparkly--idle .em-wing-l { transform-origin: right bottom; animation: sparkly-wing-rest 2.8s ease-in-out infinite; }
+.sparkly--idle .em-tail { transform-origin: left bottom; animation: sparkly-sway 2.4s ease-in-out infinite; }
+.sparkly--idle .gl-wing-l { transform-origin: right center; animation: sparkly-flutter 1.4s ease-in-out infinite; }
+.sparkly--idle .gl-tail { transform-origin: left bottom; animation: sparkly-sway 3.2s ease-in-out infinite; }
+.sparkly--idle .gl-gem { animation: sparkly-glint 2.6s ease-in-out infinite; }
+.sparkly--idle .pf-body { transform-origin: center bottom; animation: sparkly-breathe 2.6s ease-in-out infinite; }
+.sparkly--idle .pp-wing-l { transform-origin: right bottom; animation: sparkly-wing-rest 3.2s ease-in-out infinite; }
+.sparkly--idle .pp-tail { transform-origin: left bottom; animation: sparkly-sway 3s ease-in-out infinite; }
+
+/* ---------- Twinkle: hop, twirl and a burst of stars from her horn ---------- */
+.sparkly--twinkle.sparkly--dance .sparkly__actor { animation: tw-dance 1.6s ease-in-out; }
+.sparkly--twinkle.sparkly--dance .tw-burst__star { animation: tw-burst 1.2s ease-out 0.25s both; }
+.sparkly--twinkle.sparkly--dance .tw-tail { transform-origin: left bottom; animation: sparkly-sway 0.4s ease-in-out 4; }
+@keyframes tw-dance {
+  0%, 100% { transform: none; }
+  15% { transform: translateY(2px) scale(1.06, 0.92); }
+  32% { transform: translateY(-26px) rotate(-10deg); }
+  48% { transform: translateY(0) scale(1.05, 0.95); }
+  65% { transform: translateY(-26px) rotate(10deg); }
+  82% { transform: translateY(0) scale(1.05, 0.95); }
+}
+@keyframes tw-burst {
+  0% { opacity: 0; transform: scale(0.2) rotate(0deg); }
+  30% { opacity: 1; transform: scale(1.3) rotate(45deg); }
+  100% { opacity: 0; transform: scale(0.6) rotate(120deg) translateY(-10px); }
+}
+
+/* ---------- Ember: big breath in, then puffs a tiny harmless spark ---------- */
+.sparkly--ember.sparkly--dance .sparkly__actor { animation: em-dance 1.7s ease-in-out; }
+.sparkly--ember.sparkly--dance .em-wing-l { transform-origin: right bottom; animation: sparkly-flap 0.28s ease-in-out 6; }
+.sparkly--ember.sparkly--dance .em-puff { transform-origin: center bottom; animation: em-puff 1.1s ease-out 0.55s both; }
+@keyframes em-dance {
+  0%, 100% { transform: none; }
+  30% { transform: scale(1.07, 1.05) translateY(-4px); }
+  40% { transform: scale(0.95, 1.02); }
+  60% { transform: translateY(-14px); }
+  75% { transform: translateY(0) scale(1.04, 0.96); }
+}
+@keyframes em-puff {
+  0% { opacity: 0; transform: scale(0.2); }
+  25% { opacity: 1; transform: scale(1.15) translateY(-6px); }
+  100% { opacity: 0; transform: scale(1.3) translate(30px, -70px); }
+}
+
+/* ---------- Glimmer: a fluttery twirl with a trail of fairy sparkles ---------- */
+.sparkly--glimmer.sparkly--dance .sparkly__actor { animation: gl-dance 1.6s ease-in-out; }
+.sparkly--glimmer.sparkly--dance .gl-wing-l { transform-origin: right center; animation: sparkly-flutter 0.2s ease-in-out 8; }
+.sparkly--glimmer.sparkly--dance .gl-trail__star { animation: tw-burst 1s ease-out 0.3s both; }
+.sparkly--glimmer.sparkly--dance .gl-tail { transform-origin: left bottom; animation: sparkly-sway 0.35s ease-in-out 4; }
+@keyframes gl-dance {
+  0%, 100% { transform: none; }
+  20% { transform: translateY(-18px) scaleX(0.2); }
+  35% { transform: translateY(-24px) scaleX(-1); }
+  50% { transform: translateY(-18px) scaleX(0.2); }
+  65% { transform: translateY(-8px) scaleX(1); }
+  80% { transform: translateY(0) scale(1.05, 0.95); }
+}
+
+/* ---------- Puff: boing-boing, a wave, and a pop-out rainbow ---------- */
+.sparkly--puff.sparkly--dance .sparkly__actor { animation: pf-dance 1.5s ease-in-out; }
+.sparkly--puff.sparkly--dance .pf-rainbow { transform-origin: center bottom; animation: pf-rainbow 1.3s ease-out 0.15s both; }
+.sparkly--puff.sparkly--dance .pf-drops { animation: pf-drops 0.9s ease-in 0.5s both; }
+.sparkly--puff.sparkly--dance .pf-arm-l { transform-origin: right center; animation: pf-wave 0.3s ease-in-out 5 alternate; }
+.sparkly--puff.sparkly--dance .pf-arm-r { transform-origin: left center; animation: pf-wave 0.3s ease-in-out 5 alternate-reverse; }
+@keyframes pf-dance {
+  0%, 100% { transform: none; }
+  12% { transform: scale(1.18, 0.8); }
+  28% { transform: translateY(-30px) scale(0.88, 1.14); }
+  44% { transform: scale(1.18, 0.8); }
+  60% { transform: translateY(-22px) scale(0.92, 1.1); }
+  76% { transform: scale(1.1, 0.9); }
+}
+@keyframes pf-rainbow {
+  0% { opacity: 0; transform: scale(0.3, 0); }
+  30% { opacity: 1; transform: scale(1.05, 1.05); }
+  75% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@keyframes pf-drops {
+  0% { opacity: 0; transform: translateY(-14px); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(10px); }
+}
+@keyframes pf-wave { from { transform: rotate(-20deg); } to { transform: rotate(25deg); } }
+
+/* ---------- Pippa: flaps her big wings, flies up for a loop-de-loop and floats down ---------- */
+.sparkly--pippa.sparkly--dance .sparkly__actor { animation: pp-dance 1.8s ease-in-out; }
+.sparkly--pippa.sparkly--dance .pp-wing-l { transform-origin: right bottom; animation: sparkly-flap 0.3s ease-in-out 6; }
+.sparkly--pippa.sparkly--dance .pp-heart { animation: pp-heart 1.2s ease-out both; }
+.sparkly--pippa.sparkly--dance .pp-crown { animation: sparkly-glint 0.6s ease-in-out 3; }
+@keyframes pp-dance {
+  0%, 100% { transform: none; }
+  15% { transform: translateY(3px) scale(1.04, 0.94); }
+  35% { transform: translateY(-34px) rotate(-6deg); }
+  55% { transform: translateY(-40px) rotate(6deg); }
+  75% { transform: translateY(-18px) rotate(-3deg); }
+  90% { transform: translateY(0) scale(1.04, 0.96); }
+}
+@keyframes pp-heart {
+  0% { opacity: 0; transform: scale(0.2); }
+  30% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: translateY(-36px) scale(0.9); }
+}
+
+/* ---------- shared keyframes ---------- */
+@keyframes sparkly-float { 50% { transform: translateY(-5%); } }
+@keyframes sparkly-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.3) rotate(0deg); }
+  40% { opacity: 1; transform: scale(1) rotate(30deg); }
+  70% { opacity: 0; transform: scale(0.4) rotate(60deg); }
+}
+@keyframes sparkly-sway { 50% { transform: rotate(7deg); } }
+@keyframes sparkly-glint { 50% { filter: brightness(1.18); transform: scale(1.06); } }
+@keyframes sparkly-breathe { 50% { transform: scale(1.04, 0.97); } }
+@keyframes sparkly-wing-rest { 50% { transform: rotate(-8deg); } }
+@keyframes sparkly-flutter { 50% { transform: scaleX(0.82) rotate(-4deg); } }
+@keyframes sparkly-flap { 50% { transform: rotate(-26deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sparkly, .sparkly * { animation: none !important; }
+}
