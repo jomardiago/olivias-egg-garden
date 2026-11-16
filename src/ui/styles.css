@@ -43,6 +43,29 @@ button { font: inherit; cursor: pointer; touch-action: manipulation; }
 .egg { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .egg__slots { display: flex; flex-wrap: wrap; justify-content: center; max-width: 220px; gap: 2px; }
 
+.egg-choice {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 24px 16px 40px;
+}
+
+.egg-choice__eggs { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+
+.egg-choice__egg {
+  border: none;
+  background: rgb(255 255 255 / 0.6);
+  border-radius: 32px;
+  padding: 16px 20px;
+  animation: bob 2.4s ease-in-out infinite;
+}
+.egg-choice__egg:nth-child(2) { animation-delay: -0.8s; }
+.egg-choice__egg:nth-child(3) { animation-delay: -1.6s; }
+.egg-choice__egg:active { transform: scale(0.95); }
+
 .star-button {
   border: none;
   border-radius: 50%;

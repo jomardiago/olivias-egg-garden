@@ -1,4 +1,5 @@
-import type { CharacterArtProps } from './index.ts'
+import type { CharacterArtProps } from './art/types.ts'
+import { findCharacter } from './families.ts'
 
 const COLOURS = ['#ffb3c7', '#ffd36e', '#9ee2c9', '#b9a7ff', '#8fd3ff']
 
@@ -18,7 +19,7 @@ export function PlaceholderCharacterArt({ characterId, pose = 'idle', silhouette
       height={size}
       viewBox="0 0 100 100"
       role="img"
-      aria-label="Character"
+      aria-label={silhouette ? 'Mystery Character' : (findCharacter(characterId)?.name ?? 'Character')}
     >
       <ellipse cx="50" cy="58" rx="38" ry="34" fill={fill} />
       <ellipse cx="30" cy="26" rx="10" ry="14" fill={fill} />

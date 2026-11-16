@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
+import { availableEggFamilies, createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
 import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
+import { EggChoiceScreen } from './EggChoiceScreen.tsx'
 import { GardenScreen } from './GardenScreen.tsx'
 import { todayLocal } from './today.ts'
 
@@ -18,7 +19,7 @@ export function App() {
     void (async () => {
       const loaded = await loadGarden()
       if (!loaded) await requestPersistentStorage()
-      const initial = loaded ?? createGarden()
+      const initial = loaded ?? createGarden(Math.random)
       gardenRef.current = initial
       setGarden(initial)
     })()
@@ -35,6 +36,12 @@ export function App() {
   }, [])
 
   if (!garden) return <div className="loading" aria-busy="true" />
+
+  // Also covers reopening the app after closing it before choosing.
+  const choosable = garden.activeEgg.status === 'awaitingChoice' ? availableEggFamilies(garden) : []
+  if (choosable.length > 0) {
+    return <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={send} />
+  }
 
   return <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} />
 }
