@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { canMakeStarEntry, createGarden, handle, type Command, type Garden, type Result } from './index.ts'
+import { LAUNCH_CATALOG } from '../catalog/families.ts'
+import { availableEggFamilies, canMakeStarEntry, createGarden, handle, type Command, type Egg, type Garden, type GardenEvent, type Result } from './index.ts'
 
 // 2026-11-16 is a Monday; these are consecutive School Days of that week and the next.
 const MON = '2026-11-16'
@@ -19,6 +20,50 @@ function send(garden: Garden, command: Command, today: string): Result {
 
 function starEntry(garden: Garden, today: string, stars: number): Result {
   return send(garden, { type: 'MakeStarEntry', stars }, today)
+}
+
+/** A random function that returns `values` in order, then keeps returning the last one. */
+function scripted(...values: number[]): () => number {
+  let i = 0
+  return () => values[Math.min(i++, values.length - 1)] ?? 0
+}
+
+function chooseEgg(garden: Garden, familyId: string, random: () => number = () => 0): Result {
+  return handle(garden, { type: 'ChooseEgg', familyId }, { today: MON, random })
+}
+
+/** School Days from Monday 16 November 2026 onwards, enough for every Egg in the catalog. */
+function* schoolDays(): Generator<string> {
+  const day = new Date(Date.UTC(2026, 10, 16))
+  for (;;) {
+    const weekday = day.getUTCDay()
+    if (weekday >= 1 && weekday <= 5) yield day.toISOString().slice(0, 10)
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+}
+
+/**
+ * Makes 3-Star Star Entries on successive School Days; after each Hatch,
+ * chooses the next family in `choices` (random always 0). Stops after the
+ * Hatch that follows the last choice, returning that command's events.
+ */
+function hatchAll(start: Garden, choices: string[]): { garden: Garden; lastEvents: GardenEvent[] } {
+  const days = schoolDays()
+  const pending = [...choices]
+  let garden = start
+  for (;;) {
+    const { garden: next, events } = starEntry(garden, days.next().value as string, 3)
+    garden = next
+    if (!events.some((e) => e.type === 'EggHatched')) continue
+    const familyId = pending.shift()
+    if (familyId === undefined) return { garden, lastEvents: events }
+    garden = chooseEgg(garden, familyId).garden
+  }
+}
+
+function eggOf(garden: Garden): Egg {
+  if (garden.activeEgg.status !== 'egg') throw new Error(`expected an Egg, got ${garden.activeEgg.status}`)
+  return garden.activeEgg
 }
 
 describe('Make Star Entry', () => {
@@ -99,31 +144,119 @@ describe('0-star days', () => {
 })
 
 describe('Hatch and carry-over', () => {
-  it('given a first Egg with 1 Star, a 3-Star Star Entry hatches it and carries 2 Stars into the next Egg', () => {
+  it('given a first Egg with 1 Star, a 3-Star Star Entry hatches it and the 2 carried-over Stars go into the chosen Egg', () => {
     const afterMon = starEntry(createGarden(), MON, 1).garden
-    const { garden, events } = starEntry(afterMon, TUE, 3)
+    const afterHatch = starEntry(afterMon, TUE, 3).garden
+    const { garden, events } = chooseEgg(afterHatch, 'sparkly')
 
-    expect(events.map((e) => e.type)).toEqual(['StarsAdded', 'EggHatched'])
+    expect(events).toEqual([{ type: 'EggChosen', familyId: 'sparkly', eggStars: 2, hatchTarget: 5 }])
     expect(garden.hatchedCharacters).toHaveLength(1)
-    expect(garden.activeEgg).toMatchObject({ stars: 2, hatchTarget: 5 })
+    expect(garden.activeEgg).toMatchObject({ status: 'egg', familyId: 'sparkly', stars: 2, hatchTarget: 5 })
   })
 
   it('follows the Hatch Target ladder: 2, then 5, then 8, then 10 for every later Egg', () => {
     let garden = createGarden()
-    const targets = [garden.activeEgg.hatchTarget]
+    const targets = [eggOf(garden).hatchTarget]
     for (const day of SCHOOL_DAYS.slice(0, 9)) {
-      const result = starEntry(garden, day, 3)
-      garden = result.garden
-      if (result.events.some((e) => e.type === 'EggHatched')) targets.push(garden.activeEgg.hatchTarget)
+      garden = starEntry(garden, day, 3).garden
+      if (garden.activeEgg.status === 'awaitingChoice') {
+        garden = chooseEgg(garden, 'splashy').garden
+        targets.push(eggOf(garden).hatchTarget)
+      }
     }
 
     expect(targets).toEqual([2, 5, 8, 10, 10])
   })
+})
 
-  it('the next Egg holds a different Character from the one that just hatched', () => {
-    const { garden } = starEntry(createGarden(), MON, 2)
-    const hatched = garden.hatchedCharacters[0]?.characterId
+describe('Choosing the next Egg', () => {
+  it('given a first Egg with 1 Star, a 3-Star Star Entry hatches it and leaves 2 carried-over Stars awaiting an Egg choice', () => {
+    const afterMon = starEntry(createGarden(), MON, 1).garden
+    const { garden, events } = starEntry(afterMon, TUE, 3)
 
-    expect(garden.activeEgg.characterId).not.toBe(hatched)
+    expect(events.map((e) => e.type)).toEqual(['StarsAdded', 'EggHatched', 'EggChoiceNeeded'])
+    expect(events).toContainEqual({ type: 'EggChoiceNeeded', familyIds: ['fluffy', 'sparkly', 'splashy'] })
+    expect(garden.activeEgg).toEqual({ status: 'awaitingChoice', carriedOverStars: 2 })
+  })
+
+  it('a Star Entry is rejected while awaiting an Egg choice, and the star button is hidden', () => {
+    const before = starEntry(createGarden(), MON, 2).garden
+    const { garden, events } = starEntry(before, TUE, 1)
+
+    expect(events).toEqual([{ type: 'CommandRejected', reason: 'AwaitingEggChoice' }])
+    expect(garden).toEqual(before)
+    expect(canMakeStarEntry(before, TUE)).toBe(false)
+  })
+
+  it('Choose Egg is rejected when no Egg choice is awaited', () => {
+    const before = createGarden()
+    const { garden, events } = chooseEgg(before, 'fluffy')
+
+    expect(events).toEqual([{ type: 'CommandRejected', reason: 'NotAwaitingEggChoice' }])
+    expect(garden).toEqual(before)
+  })
+
+  it('the Character inside is picked with the random function from the family\'s unhatched Characters only', () => {
+    // The first Egg (random 0) is Fluffy's Bun-Bun; once she has hatched, Fluffy's unhatched Characters are Pip, Mochi, Hazel, Pudding.
+    const afterHatch = starEntry(createGarden(), MON, 2).garden
+    expect(afterHatch.hatchedCharacters.map((h) => h.characterId)).toEqual(['bun-bun'])
+
+    expect(eggOf(chooseEgg(afterHatch, 'fluffy', scripted(0)).garden).characterId).toBe('pip')
+    expect(eggOf(chooseEgg(afterHatch, 'fluffy', scripted(0.5)).garden).characterId).toBe('hazel')
+    expect(eggOf(chooseEgg(afterHatch, 'fluffy', scripted(0.99)).garden).characterId).toBe('pudding')
+    expect(eggOf(chooseEgg(afterHatch, 'sparkly', scripted(0)).garden).characterId).toBe('twinkle')
+  })
+
+  it('a fully hatched Egg Family is no longer offered and cannot be chosen', () => {
+    const { garden, lastEvents } = hatchAll(createGarden(), ['fluffy', 'fluffy', 'fluffy', 'fluffy'])
+
+    expect(garden.hatchedCharacters.map((h) => h.characterId)).toEqual(['bun-bun', 'pip', 'mochi', 'hazel', 'pudding'])
+    expect(lastEvents).toContainEqual({ type: 'EggChoiceNeeded', familyIds: ['sparkly', 'splashy'] })
+    expect(chooseEgg(garden, 'fluffy').events).toEqual([{ type: 'CommandRejected', reason: 'EggFamilyNotAvailable' }])
+  })
+
+  it('when only one Egg Family has Characters left, its Egg is chosen automatically', () => {
+    const { garden, lastEvents } = hatchAll(createGarden(), [
+      ...Array<string>(4).fill('fluffy'),
+      ...Array<string>(5).fill('sparkly'),
+    ])
+
+    expect(lastEvents.map((e) => e.type)).toEqual(['StarsAdded', 'EggHatched', 'EggChosen'])
+    expect(lastEvents).toContainEqual(expect.objectContaining({ type: 'EggChosen', familyId: 'splashy' }))
+    expect(eggOf(garden)).toMatchObject({ familyId: 'splashy', characterId: 'bubbles', hatchTarget: 10 })
+  })
+
+  it('carried-over Stars that already meet the chosen Egg\'s Hatch Target hatch it straight away', () => {
+    const afterHatch = starEntry(createGarden(), MON, 2).garden
+    const before: Garden = { ...afterHatch, activeEgg: { status: 'awaitingChoice', carriedOverStars: 6 } }
+    const { garden, events } = chooseEgg(before, 'splashy', scripted(0))
+
+    expect(events).toEqual([
+      { type: 'EggChosen', familyId: 'splashy', eggStars: 5, hatchTarget: 5 },
+      { type: 'EggHatched', characterId: 'bubbles' },
+      { type: 'EggChoiceNeeded', familyIds: ['fluffy', 'sparkly', 'splashy'] },
+    ])
+    expect(garden.hatchedCharacters.map((h) => h.characterId)).toEqual(['bun-bun', 'bubbles'])
+    expect(garden.activeEgg).toEqual({ status: 'awaitingChoice', carriedOverStars: 1 })
+  })
+
+  it('an Egg Family added to the catalog is offered and choosable with no change to the Garden', () => {
+    const catalog = [
+      ...LAUNCH_CATALOG,
+      { id: 'spiky', name: 'Spiky', pattern: 'Green Egg with soft spikes.', characters: [{ id: 'cactus', name: 'Prickles', kind: 'cactus' }] },
+    ]
+    const before = handle(createGarden(), { type: 'MakeStarEntry', stars: 2 }, { today: MON, random: () => 0, catalog }).garden
+    const deps = { today: MON, random: () => 0, catalog }
+
+    expect(availableEggFamilies(before, catalog)).toEqual(['fluffy', 'sparkly', 'splashy', 'spiky'])
+    expect(eggOf(handle(before, { type: 'ChooseEgg', familyId: 'spiky' }, deps).garden).characterId).toBe('cactus')
+  })
+
+  it('Choose Egg is rejected for an Egg Family that does not exist', () => {
+    const before = starEntry(createGarden(), MON, 2).garden
+    const { garden, events } = chooseEgg(before, 'spiky')
+
+    expect(events).toEqual([{ type: 'CommandRejected', reason: 'EggFamilyNotAvailable' }])
+    expect(garden).toEqual(before)
   })
 })
