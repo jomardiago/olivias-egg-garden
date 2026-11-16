@@ -1,0 +1,135 @@
+/* The Egg with its arc of star slots, and the Star celebration. */
+
+.egg-view {
+  --ring: 118px;
+  --egg-top: 46px;
+  --egg-centre: calc(var(--egg-top) + var(--egg-size) * 0.48);
+  position: relative;
+  width: 280px;
+  height: calc(var(--egg-top) + var(--egg-size) + 8px);
+}
+
+.egg-view__slot {
+  position: absolute;
+  left: calc(50% + var(--slot-x) * var(--ring) - 15px);
+  top: calc(var(--egg-centre) + var(--slot-y) * var(--ring) - 15px);
+  width: 30px;
+  height: 30px;
+}
+
+.slot-star { display: block; overflow: visible; filter: drop-shadow(0 1px 1px rgb(160 110 0 / 0.25)); }
+.slot-star--pop { animation: slot-pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+
+.egg-view__egg {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--egg-top);
+  display: flex;
+  justify-content: center;
+  transform-origin: 50% 100%;
+}
+
+.egg-view__egg--pop { animation: egg-pop 0.45s ease-out; }
+.egg-view__egg--tada { animation: egg-tada 0.7s ease-out; }
+.egg-view__egg--happy { animation: egg-happy-wiggle 1.8s ease-in-out; }
+
+/* One Star flying up into the Egg along a curve, spinning and shrinking as it goes in. */
+.flying-star {
+  position: fixed;
+  z-index: 10;
+  width: 56px;
+  height: 56px;
+  margin: -28px 0 0 -28px;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgb(255 214 64 / 0.9));
+  animation: star-fly 0.9s cubic-bezier(0.45, 0, 0.55, 1) forwards;
+}
+
+@keyframes star-fly {
+  0% { transform: translate(calc(var(--side) * 40px), 62vh) scale(1.5) rotate(0); opacity: 0; }
+  12% { opacity: 1; }
+  55% { transform: translate(calc(var(--side) * 110px), -70px) scale(1.25) rotate(220deg); }
+  100% { transform: translate(0, 0) scale(0.35) rotate(420deg); opacity: 0.9; }
+}
+
+/* The little pop as a Star lands. */
+@keyframes egg-pop {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.12, 0.9); }
+  60% { transform: scale(0.95, 1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes slot-pop {
+  0% { transform: scale(0.2) rotate(-60deg); }
+  70% { transform: scale(1.45) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* The stage changing once every Star is in. */
+@keyframes egg-tada {
+  0% { transform: scale(1); }
+  25% { transform: translateY(-14px) scale(1.06); }
+  50% { transform: translateY(0) scale(1.1, 0.92); }
+  75% { transform: scale(0.97, 1.04); }
+  100% { transform: scale(1); }
+}
+
+/* 0-star day: a happy little dance, never sad. */
+@keyframes egg-happy-wiggle {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  12% { transform: rotate(-8deg); }
+  24% { transform: rotate(8deg); }
+  36% { transform: rotate(-6deg) translateY(-8px); }
+  48% { transform: rotate(6deg) translateY(0); }
+  60% { transform: translateY(-16px) scale(1.04); }
+  72% { transform: translateY(0) scale(1.08, 0.94); }
+  86% { transform: scale(0.98, 1.03); }
+}
+
+.sparkle-burst {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.sparkle-burst span {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  background: var(--hue);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: sparkle-out 0.6s ease-out forwards;
+}
+
+@keyframes sparkle-out {
+  0% { transform: rotate(var(--angle)) translateY(0) scale(0.4); opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-92px) scale(1.2) rotate(90deg); opacity: 0; }
+}
+
+.happy-hearts {
+  position: absolute;
+  left: 50%;
+  top: 20%;
+  width: 0;
+  pointer-events: none;
+}
+
+.happy-hearts svg {
+  position: absolute;
+  left: calc((var(--i) - 2) * 30px - 13px);
+  opacity: 0;
+  animation: heart-float 1.6s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.12s);
+}
+
+@keyframes heart-float {
+  0% { transform: translateY(20px) scale(0.3); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-90px) scale(1.1) rotate(calc((var(--i) - 2) * 12deg)); opacity: 0; }
+}

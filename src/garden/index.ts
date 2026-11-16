@@ -6,6 +6,8 @@
  */
 import { LAUNCH_CATALOG, type Catalog } from '../catalog/families.ts'
 
+export { eggStage, type EggStage } from './eggStage.ts'
+
 /** A device-local calendar date, formatted `YYYY-MM-DD`. */
 export type LocalDate = string
 

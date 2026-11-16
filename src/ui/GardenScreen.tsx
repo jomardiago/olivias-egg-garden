@@ -34,7 +34,7 @@ export function GardenScreen({ garden, today, events, onCommand }: Props) {
       </section>
 
       <section className="garden__nest" aria-label="Egg">
-        {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} />}
+        {garden.activeEgg.status === 'egg' && <EggView egg={garden.activeEgg} events={events} />}
       </section>
 
       {canMakeStarEntry(garden, today) && !picking && pendingStars === null && (
