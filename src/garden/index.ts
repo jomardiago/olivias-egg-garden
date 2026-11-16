@@ -44,6 +44,10 @@ export type Command =
   | { type: 'MakeStarEntry'; stars: number }
   /** Pick the next Egg by Egg Family; the Character inside is a random surprise. */
   | { type: 'ChooseEgg'; familyId: string }
+  /** Parent Area: a Star Entry for a forgotten past School Day. */
+  | { type: 'AddMissedStarEntry'; date: LocalDate; stars: number }
+  /** Parent Area: change the Stars of an existing Star Entry. Never un-hatches a Character. */
+  | { type: 'CorrectStarEntry'; date: LocalDate; stars: number }
 
 export type GardenEvent =
   /** Stars went into the active Egg; `eggStars` is its fill afterwards (capped at the Hatch Target). */
@@ -54,6 +58,8 @@ export type GardenEvent =
   | { type: 'EggChoiceNeeded'; familyIds: string[] }
   /** A new Egg of `familyId` now rests in the nest, already holding `eggStars` carried-over Stars. */
   | { type: 'EggChosen'; familyId: string; eggStars: number; hatchTarget: number }
+  /** A Star Entry's Stars were changed; any Stars this added to the Egg follow as `StarsAdded`. */
+  | { type: 'StarEntryCorrected'; date: LocalDate; previousStars: number; stars: number }
   | { type: 'CommandRejected'; reason: RejectionReason }
 
 export type RejectionReason =
@@ -63,6 +69,11 @@ export type RejectionReason =
   | 'AwaitingEggChoice'
   | 'NotAwaitingEggChoice'
   | 'EggFamilyNotAvailable'
+  | 'NotAPastDate'
+  | 'InvalidDate'
+  /** A past School Day that already has its one Star Entry. */
+  | 'AlreadyEntered'
+  | 'NoStarEntryOnDate'
 
 export type Deps = {
   /** Today's device-local date. */
@@ -136,6 +147,10 @@ export function handle(garden: Garden, command: Command, deps: Deps): Result {
       return makeStarEntry(garden, command.stars, deps)
     case 'ChooseEgg':
       return chooseEgg(garden, command.familyId, deps)
+    case 'AddMissedStarEntry':
+      return addMissedStarEntry(garden, command.date, command.stars, deps)
+    case 'CorrectStarEntry':
+      return correctStarEntry(garden, command.date, command.stars, deps)
   }
 }
 
@@ -166,11 +181,67 @@ function rejected(garden: Garden, reason: RejectionReason): Result {
 }
 
 function makeStarEntry(garden: Garden, stars: number, deps: Deps): Result {
-  const rejection = starEntryRejection(garden, deps.today, stars)
+  return recordStarEntry(garden, deps.today, stars, deps)
+}
+
+/** ISO `YYYY-MM-DD` dates compare in calendar order as plain strings. */
+function addMissedStarEntry(garden: Garden, date: LocalDate, stars: number, deps: Deps): Result {
+  if (!isCalendarDate(date)) return rejected(garden, 'InvalidDate')
+  if (!(date < deps.today)) return rejected(garden, 'NotAPastDate')
+  if (hasStarEntry(garden, date)) return rejected(garden, 'AlreadyEntered')
+  return recordStarEntry(garden, date, stars, deps)
+}
+
+/**
+ * An increase goes in like extra Stars (into the Egg, or onto the
+ * carried-over Stars while awaiting a choice). A decrease comes only out
+ * of the active Egg or the carried-over Stars, never below 0, and never
+ * takes back a hatched Character.
+ */
+function correctStarEntry(garden: Garden, date: LocalDate, stars: number, deps: Deps): Result {
+  if (!isValidStars(stars)) return rejected(garden, 'StarsOutOfRange')
+  const entry = garden.starEntries.find((e) => e.date === date)
+  if (!entry) return rejected(garden, 'NoStarEntryOnDate')
+  const corrected: Garden = {
+    ...garden,
+    starEntries: garden.starEntries.map((e) => (e.date === date ? { date, stars } : e)),
+  }
+  const correctedEvent: GardenEvent = { type: 'StarEntryCorrected', date, previousStars: entry.stars, stars }
+  const difference = stars - entry.stars
+  const egg = corrected.activeEgg
+  if (difference > 0 && egg.status === 'egg') {
+    const added = addStars(corrected, difference, deps)
+    return { garden: added.garden, events: [correctedEvent, ...added.events] }
+  }
+  const activeEgg: ActiveEgg =
+    egg.status === 'egg'
+      ? { ...egg, stars: Math.max(0, egg.stars + difference) }
+      : { ...egg, carriedOverStars: Math.max(0, egg.carriedOverStars + difference) }
+  return { garden: { ...corrected, activeEgg }, events: [correctedEvent] }
+}
+
+/** The Star Entries for the Parent Area's history, newest School Day first. */
+export function starEntryHistory(garden: Garden): StarEntry[] {
+  return [...garden.starEntries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
+}
+
+/** Whether `date` is a real `YYYY-MM-DD` calendar date. */
+function isCalendarDate(date: LocalDate): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false
+  const [year, month, day] = date.split('-').map(Number)
+  return new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1)).toISOString().slice(0, 10) === date
+}
+
+function hasStarEntry(garden: Garden, date: LocalDate): boolean {
+  return garden.starEntries.some((entry) => entry.date === date)
+}
+
+function recordStarEntry(garden: Garden, date: LocalDate, stars: number, deps: Deps): Result {
+  const rejection = starEntryRejection(garden, date, stars)
   if (rejection) return rejected(garden, rejection)
   const recorded: Garden = {
     ...garden,
-    starEntries: [...garden.starEntries, { date: deps.today, stars }],
+    starEntries: [...garden.starEntries, { date, stars }],
   }
   return addStars(recorded, stars, deps)
 }
@@ -188,15 +259,19 @@ export function isSchoolDay(date: LocalDate): boolean {
 }
 
 function starEntryRejection(garden: Garden, date: LocalDate, stars: number): RejectionReason | null {
-  if (!Number.isInteger(stars) || stars < 0 || stars > MAX_STARS) return 'StarsOutOfRange'
+  if (!isValidStars(stars)) return 'StarsOutOfRange'
   if (!isSchoolDay(date)) return 'NotASchoolDay'
-  if (garden.starEntries.some((entry) => entry.date === date)) return 'AlreadyEnteredToday'
+  if (hasStarEntry(garden, date)) return 'AlreadyEnteredToday'
   // The UI makes her choose her next Egg first.
   if (garden.activeEgg.status === 'awaitingChoice') return 'AwaitingEggChoice'
   return null
 }
 
 const MAX_STARS = 3
+
+function isValidStars(stars: number): boolean {
+  return Number.isInteger(stars) && stars >= 0 && stars <= MAX_STARS
+}
 
 function addStars(garden: Garden, stars: number, deps: Deps): Result {
   if (stars === 0) return { garden, events: [{ type: 'ZeroStarDayRecorded' }] }
