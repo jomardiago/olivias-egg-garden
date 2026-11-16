@@ -15,15 +15,13 @@ export type Celebration =
 
 /**
  * The Star celebration for `events`, or null if there is nothing to play.
- * `eggStarsBefore` is the Egg's fill before the command; it can be left out
- * unless the Egg hatched, since otherwise the Stars added event gives it exactly.
  */
-export function celebrationFor(events: readonly GardenEvent[], eggStarsBefore?: number): Celebration | null {
+export function celebrationFor(events: readonly GardenEvent[]): Celebration | null {
   if (events.some((e) => e.type === 'ZeroStarDayRecorded')) return { kind: 'zeroStarWiggle' }
   const added = events.find((e) => e.type === 'StarsAdded')
   if (!added) return null
   const { hatchTarget } = added
-  const before = Math.max(0, eggStarsBefore ?? added.eggStars - added.stars)
+  const before = added.eggStarsBefore
   const fill = (eggStars: number): EggFill => ({ eggStars, stage: eggStage(eggStars, hatchTarget) })
   return {
     kind: 'starFlights',

@@ -7,7 +7,7 @@ describe('Star celebration', () => {
   })
 
   it('2 Stars added to an Egg holding 1 of 5 fly in one by one, and it starts wobbling', () => {
-    expect(celebrationFor([{ type: 'StarsAdded', stars: 2, eggStars: 3, hatchTarget: 5 }])).toEqual({
+    expect(celebrationFor([{ type: 'StarsAdded', stars: 2, eggStarsBefore: 1, eggStars: 3, hatchTarget: 5 }])).toEqual({
       kind: 'starFlights',
       hatchTarget: 5,
       from: { eggStars: 1, stage: 'still' },
@@ -21,10 +21,10 @@ describe('Star celebration', () => {
   it('Stars that fill the Egg end on the big crack, and extra Stars still each fly in', () => {
     // First Egg holding 1 of 2, then a 3-Star Star Entry: it Hatches with 2 carried over.
     const events = [
-      { type: 'StarsAdded', stars: 3, eggStars: 2, hatchTarget: 2 },
-      { type: 'EggHatched', characterId: 'pip' },
+      { type: 'StarsAdded', stars: 3, eggStarsBefore: 1, eggStars: 2, hatchTarget: 2 },
+      { type: 'EggHatched', characterId: 'pip', familyId: 'fluffy', hatchTarget: 2 },
     ] as const
-    expect(celebrationFor(events, 1)).toEqual({
+    expect(celebrationFor(events)).toEqual({
       kind: 'starFlights',
       hatchTarget: 2,
       from: { eggStars: 1, stage: 'wobbling' },

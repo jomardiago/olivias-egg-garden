@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { characterArt, eggPattern, findCharacter } from '../../catalog/index.ts'
-import type { CelebrationSignal, HatchPhase, Reveal } from './hatchCelebration.ts'
+import type { CelebrationSignal, HatchPhase, HatchScene } from './hatchCelebration.ts'
 import './hatchCelebration.css'
 
 type Props = {
-  reveal: Reveal
+  scene: HatchScene
   childName: string
   onSignal: (signal: CelebrationSignal) => void
   /**
-   * Fires once as each phase begins, for effects that follow the reveal
-   * (ticket 14: crack crunch on `crack`, fanfare on `burst`, whoosh on `enter`).
+   * Fires once as each phase begins, for effects that follow the hatch
+   * (crack crunch on `crack`, fanfare on `burst`, whoosh on `enter`).
    */
-  onPhaseStart?: (phase: HatchPhase, reveal: Reveal) => void
+  onPhaseStart?: (phase: HatchPhase, scene: HatchScene) => void
 }
 
 /** How long the timed phases last, in ms. `dance` is a fallback in case the art never reports its dance ending. */
@@ -25,21 +25,21 @@ const CONFETTI_COUNT = 56
  * confetti, then the new Character big with its name and the child's name,
  * dancing. A tap sends it running into the Garden.
  */
-export function HatchCelebration({ reveal, childName, onSignal, onPhaseStart }: Props) {
-  const { phase, characterId, familyId } = reveal
+export function HatchCelebration({ scene, childName, onSignal, onPhaseStart }: Props) {
+  const { phase, characterId, familyId } = scene
   const Art = characterArt(characterId)
   const Egg = eggPattern(familyId)
   const name = findCharacter(characterId)?.name ?? 'your new friend'
   const [size] = useState(() => Math.round(Math.min(window.innerWidth * 0.7, window.innerHeight * 0.42, 340)))
 
   useEffect(() => {
-    onPhaseStart?.(phase, reveal)
+    onPhaseStart?.(phase, scene)
     const ms = PHASE_MS[phase]
     if (ms === undefined) return
     const signal: CelebrationSignal = phase === 'dance' ? { type: 'danceEnd' } : { type: 'timer' }
     const timer = window.setTimeout(() => onSignal(signal), ms)
     return () => window.clearTimeout(timer)
-    // Restart only when the phase (or the reveal) changes.
+    // Restart only when the phase (or the scene) changes.
   }, [phase, characterId])
 
   const confetti = useMemo(() => makeConfetti(characterId), [characterId])

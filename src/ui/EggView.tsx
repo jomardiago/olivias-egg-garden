@@ -10,8 +10,6 @@ type Props = {
   egg: Pick<Egg, 'familyId' | 'hatchTarget' | 'stars'>
   /** The last command's events; a Stars added or 0-star day event plays its celebration once. */
   events?: readonly GardenEvent[]
-  /** The Egg's Stars before the command; only needed when the Egg hatched (see `celebrationFor`). */
-  eggStarsBefore?: number
   onCelebrationEnd?: () => void
 }
 
@@ -29,9 +27,9 @@ const WIGGLE_MS = 1900
  * then the Egg's stage updates; a 0-star day gets a happy wiggle instead.
  * The Garden is already saved by then, so closing mid-way loses nothing.
  */
-export function EggView({ egg, events = NO_EVENTS, eggStarsBefore, onCelebrationEnd }: Props) {
+export function EggView({ egg, events = NO_EVENTS, onCelebrationEnd }: Props) {
   // Worked out once per command, so re-renders never replay it.
-  const celebration = useMemo(() => celebrationFor(events, eggStarsBefore), [events])
+  const celebration = useMemo(() => celebrationFor(events), [events])
   const [played, setPlayed] = useState({ celebration, landed: 0, flying: false, done: celebration === null })
   // A new command's celebration starts from the beginning.
   if (played.celebration !== celebration) setPlayed({ celebration, landed: 0, flying: false, done: celebration === null })

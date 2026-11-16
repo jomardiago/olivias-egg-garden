@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
-import { availableEggFamilies, createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
+import { choosableEggFamilies, createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
 import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
 import { CollectionCompleteCelebration } from './CollectionCompleteCelebration.tsx'
 import { CollectionScreen } from './CollectionScreen.tsx'
 import { EggChoiceScreen } from './EggChoiceScreen.tsx'
 import { GardenScreen } from './GardenScreen.tsx'
-import { celebrate, currentReveal, gardenAsShown, NO_CELEBRATION } from './hatch/hatchCelebration.ts'
+import { celebrate, currentScene, gardenAsShown, NO_CELEBRATION } from './hatch/hatchCelebration.ts'
 import { HatchCelebration } from './hatch/HatchCelebration.tsx'
 import { ParentArea } from './parentArea/ParentArea.tsx'
 import { ParentAreaEntry } from './parentArea/ParentAreaEntry.tsx'
@@ -71,22 +71,22 @@ export function App() {
 
   // A Hatch celebration plays over the Garden before anything else, including the Egg choice,
   // once the Stars have finished flying into the Egg.
-  const reveal = currentReveal(celebration)
-  if (reveal) {
+  const scene = currentScene(celebration)
+  if (scene) {
     return (
       <>
         <GardenScreen
-          garden={gardenAsShown(garden, celebration, events)}
+          garden={gardenAsShown(garden, celebration)}
           today={todayLocal()}
           events={events}
           onCommand={sendCommand}
           onOpenCollection={() => setView('collection')}
           onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
         />
-        {reveal.phase !== 'waitForStars' && (
-          <HatchCelebration key={reveal.characterId} reveal={reveal} childName={garden.childName} onSignal={signalCelebration}
-            onPhaseStart={(phase, r) => {
-              const cue = hatchPhaseCue(phase, r.characterId)
+        {scene.phase !== 'waitForStars' && (
+          <HatchCelebration key={scene.characterId} scene={scene} childName={garden.childName} onSignal={signalCelebration}
+            onPhaseStart={(phase, s) => {
+              const cue = hatchPhaseCue(phase, s.characterId)
               if (cue) sound.play(cue)
             }}
           />
@@ -101,7 +101,7 @@ export function App() {
   }
 
   // Also covers reopening the app after closing it before choosing.
-  const choosable = garden.activeEgg.status === 'awaitingChoice' ? availableEggFamilies(garden) : []
+  const choosable = choosableEggFamilies(garden)
   if (choosable.length === 0 && view === 'collection') return <CollectionScreen garden={garden} onClose={() => setView('garden')} />
 
   const screen =

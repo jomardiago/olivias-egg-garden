@@ -160,13 +160,13 @@ describe('cues for the Garden core events', () => {
   it('leaves the hatch to the Hatch celebration, even when the chosen Egg hatches straight away', () => {
     const events = [
       { type: 'EggChosen', familyId: 'bunny', eggStars: 2, hatchTarget: 2 },
-      { type: 'EggHatched', characterId: 'bunny-1' },
+      { type: 'EggHatched', characterId: 'bunny-1', familyId: 'fluffy', hatchTarget: 2 },
     ] as const
     expect(cuesForEvents(events)).toEqual([])
   })
 
   it('leaves the Star flights to the Egg and ignores events with no sound', () => {
-    expect(cuesForEvents([{ type: 'StarsAdded', stars: 2, eggStars: 2, hatchTarget: 5 }, { type: 'MuteChanged', muted: true }])).toEqual([])
+    expect(cuesForEvents([{ type: 'StarsAdded', stars: 2, eggStarsBefore: 0, eggStars: 2, hatchTarget: 5 }, { type: 'MuteChanged', muted: true }])).toEqual([])
   })
 })
 
