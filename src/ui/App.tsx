@@ -1,0 +1,40 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
+import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
+import { GardenScreen } from './GardenScreen.tsx'
+import { todayLocal } from './today.ts'
+
+/**
+ * Wires the UI to the Garden core: every command goes through `handle`,
+ * the new Garden is saved before anything is shown, and the returned
+ * events drive what the screens animate.
+ */
+export function App() {
+  const [garden, setGarden] = useState<Garden | null>(null)
+  const [events, setEvents] = useState<GardenEvent[]>([])
+  const gardenRef = useRef<Garden | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      const loaded = await loadGarden()
+      if (!loaded) await requestPersistentStorage()
+      const initial = loaded ?? createGarden()
+      gardenRef.current = initial
+      setGarden(initial)
+    })()
+  }, [])
+
+  const send = useCallback(async (command: Command) => {
+    const current = gardenRef.current
+    if (!current) return
+    const result = handle(current, command, { today: todayLocal(), random: Math.random })
+    await saveGarden(result.garden)
+    gardenRef.current = result.garden
+    setGarden(result.garden)
+    setEvents(result.events)
+  }, [])
+
+  if (!garden) return <div className="loading" aria-busy="true" />
+
+  return <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} />
+}

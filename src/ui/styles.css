@@ -1,0 +1,103 @@
+:root {
+  --sky: #cdeeff;
+  --grass: #9fdc8a;
+  --ink: #3b2f55;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { margin: 0; height: 100%; }
+
+body {
+  background: linear-gradient(var(--sky) 0 55%, var(--grass) 55% 100%);
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+button { font: inherit; cursor: pointer; touch-action: manipulation; }
+
+.garden {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 16px 40px;
+}
+
+.garden__title { margin: 0; font-size: clamp(1.4rem, 6vw, 2.4rem); text-align: center; }
+
+.garden__characters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  min-height: 80px;
+}
+
+.garden__nest { display: flex; justify-content: center; }
+
+.egg { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.egg__slots { display: flex; flex-wrap: wrap; justify-content: center; max-width: 220px; gap: 2px; }
+
+.star-button {
+  border: none;
+  border-radius: 50%;
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  box-shadow: 0 6px 0 #e0a800, 0 10px 24px rgb(0 0 0 / 0.15);
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+.star-picker {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  background: rgb(59 47 85 / 0.55);
+  padding: 16px;
+}
+
+.star-picker__stars { display: flex; gap: 8px; }
+
+.star-picker__star {
+  border: none;
+  background: #fff;
+  border-radius: 24px;
+  padding: 8px;
+}
+
+.star-picker__star[aria-pressed='true'] svg { animation: pop 0.25s ease-out; }
+
+.star-picker__actions { display: flex; gap: 48px; }
+
+.round-button {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: none;
+  font-size: 48px;
+  color: #fff;
+}
+.round-button--confirm { background: #3cb371; }
+.round-button--cancel { background: #c2bcd4; }
+
+.character--idle { animation: bob 2.4s ease-in-out infinite; }
+.just-hatched { animation: pop 0.6s ease-out; }
+
+@keyframes bob { 50% { transform: translateY(-6px); } }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+@keyframes pop { 0% { transform: scale(0.4); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; }
+}
