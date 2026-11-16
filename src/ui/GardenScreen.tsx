@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { characterArt } from '../catalog/index.ts'
 import { canMakeStarEntry, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
 import { EggView } from './EggView.tsx'
+import { ParentGate } from './parentGate/ParentGate.tsx'
 import { StarIcon } from './StarIcon.tsx'
 import { StarPicker } from './StarPicker.tsx'
 
@@ -14,6 +15,7 @@ type Props = {
 
 export function GardenScreen({ garden, today, events, onCommand }: Props) {
   const [picking, setPicking] = useState(false)
+  const [pendingStars, setPendingStars] = useState<number | null>(null)
   const hatched = events.find((e) => e.type === 'EggHatched')
 
   return (
@@ -35,7 +37,7 @@ export function GardenScreen({ garden, today, events, onCommand }: Props) {
         <EggView stars={garden.activeEgg.stars} hatchTarget={garden.activeEgg.hatchTarget} />
       </section>
 
-      {canMakeStarEntry(garden, today) && !picking && (
+      {canMakeStarEntry(garden, today) && !picking && pendingStars === null && (
         <button type="button" className="star-button" aria-label="Add today's Stars" onClick={() => setPicking(true)}>
           <StarIcon size={88} filled />
         </button>
@@ -44,8 +46,20 @@ export function GardenScreen({ garden, today, events, onCommand }: Props) {
       {picking && (
         <StarPicker
           onCancel={() => setPicking(false)}
-          onConfirm={async (stars) => {
+          onConfirm={(stars) => {
             setPicking(false)
+            setPendingStars(stars)
+          }}
+        />
+      )}
+
+      {pendingStars !== null && (
+        <ParentGate
+          purpose={`Approve ${pendingStars} Star${pendingStars === 1 ? '' : 's'} for today`}
+          onCancel={() => setPendingStars(null)}
+          onPass={async () => {
+            const stars = pendingStars
+            setPendingStars(null)
             await onCommand({ type: 'MakeStarEntry', stars })
           }}
         />
