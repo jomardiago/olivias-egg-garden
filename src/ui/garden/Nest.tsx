@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { sound } from '../../sound/index.ts'
 /**
  * The twiggy nest the active Egg rests in. The Egg (`children`) sits between
  * the back of the nest and its front rim; tapping it plays a happy wiggle.
@@ -18,7 +19,10 @@ export function Nest({ children, hasEgg }: { children: ReactNode; hasEgg: boolea
           type="button"
           className={`nest__egg${wiggling ? ' nest__egg--wiggle' : ''}`}
           aria-label="Wiggle the Egg"
-          onClick={() => setWiggling(true)}
+          onClick={() => {
+            setWiggling(true)
+            sound.play({ type: 'eggWobble' })
+          }}
           onAnimationEnd={(e) => {
             if (e.animationName === 'egg-wiggle') setWiggling(false)
           }}

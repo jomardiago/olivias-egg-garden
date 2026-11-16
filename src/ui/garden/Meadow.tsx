@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { characterArt, findCharacter } from '../../catalog/index.ts'
+import { sound } from '../../sound/index.ts'
 import { chooseWanderTarget, keepInMeadow, type Box, type Meadow as MeadowShape, type Spot } from './wander.ts'
 
 type Props = {
@@ -158,6 +159,7 @@ function Wanderer({ characterId, meadow, spots, startAt }: WandererProps) {
     }
     setWalking(false)
     setDancing(true)
+    sound.play({ type: 'dance', characterId })
   }
 
   const Art = characterArt(characterId)
