@@ -23,7 +23,7 @@ export type CharacterArt = ComponentType<CharacterArtProps>
 /** A family's Character art, keyed by Character id. A Character with no entry falls back to the placeholder. */
 export type FamilyCharacterArt = Readonly<Partial<Record<string, CharacterArt>>>
 
-/** The four visual fill stages of an Egg (ticket 05). */
+/** The four visual fill stages of an Egg. */
 export type EggStage = 'still' | 'wobbling' | 'smallCrack' | 'bigCrack'
 
 /** How a screen asks for an Egg Family's Egg to be drawn. */

@@ -20,8 +20,7 @@ export default defineConfig({
         description: 'A sticker-chart garden where gold stars hatch eggs.',
         start_url: '/',
         scope: '/',
-        display: 'fullscreen',
-        orientation: 'portrait',
+        display: 'standalone',
         background_color: '#cdeeff',
         theme_color: '#cdeeff',
         icons: [

@@ -4,7 +4,7 @@ import type { CharacterArt, CharacterArtProps, FamilyCharacterArt } from './type
 import './fluffy.css'
 
 /**
- * Fluffy Egg Family art (ticket 07): Bun-Bun the bunny, Pip the chick,
+ * Fluffy Egg Family art: Bun-Bun the bunny, Pip the chick,
  * Mochi the kitten, Hazel the hedgehog and Pudding the puppy.
  *
  * Every Character shares one shell (`FluffyCharacter`) that owns the SVG

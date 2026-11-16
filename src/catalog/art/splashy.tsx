@@ -4,7 +4,7 @@ import type { CharacterArt, CharacterArtProps, FamilyCharacterArt } from './type
 import './splashy.css'
 
 /**
- * Splashy Egg Family art (ticket 09): Bubbles the octopus, Shelly the
+ * Splashy Egg Family art: Bubbles the octopus, Shelly the
  * turtle, Finn the narwhal, Coral the seahorse and Waddles the penguin.
  *
  * Every Character is drawn on a 200x200 viewBox so it stays crisp at any

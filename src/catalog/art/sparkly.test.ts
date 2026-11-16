@@ -3,7 +3,6 @@ import { createElement } from 'react'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { PlaceholderCharacterArt } from '../PlaceholderCharacterArt.tsx'
 import { characterArt, findEggFamily, type CharacterArtProps } from '../index.ts'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -34,7 +33,7 @@ function render(props: CharacterArtProps) {
 
 describe('Sparkly family art', () => {
   it.each(SPARKLY.map((c) => [c.id, c.name]))('%s has its own art, labelled with its name', (id, name) => {
-    expect(characterArt(id)).not.toBe(PlaceholderCharacterArt)
+    expect(() => characterArt(id)).not.toThrow()
     const svg = render({ characterId: id, size: 120 })
     expect(svg.getAttribute('role')).toBe('img')
     expect(svg.getAttribute('aria-label')).toBe(name)

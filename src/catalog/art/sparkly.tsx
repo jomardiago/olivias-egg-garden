@@ -4,7 +4,7 @@ import type { CharacterArt, CharacterArtProps, FamilyCharacterArt } from './type
 import './sparkly.css'
 
 /**
- * Sparkly Egg Family art (ticket 08): Twinkle the unicorn, Ember the baby
+ * Sparkly Egg Family art: Twinkle the unicorn, Ember the baby
  * dragon, Glimmer the fairy fox, Puff the cloud sprite and Pippa the pegasus.
  *
  * Every Character is drawn on a 200x200 canvas by a `Design`; `SparklyFrame`
