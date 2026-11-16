@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { availableEggFamilies, createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
 import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
+import { CollectionCompleteCelebration } from './CollectionCompleteCelebration.tsx'
+import { CollectionScreen } from './CollectionScreen.tsx'
 import { EggChoiceScreen } from './EggChoiceScreen.tsx'
 import { GardenScreen } from './GardenScreen.tsx'
 import { todayLocal } from './today.ts'
@@ -14,6 +16,8 @@ export function App() {
   const [garden, setGarden] = useState<Garden | null>(null)
   const [events, setEvents] = useState<GardenEvent[]>([])
   const gardenRef = useRef<Garden | null>(null)
+  const [view, setView] = useState<'garden' | 'collection'>('garden')
+  const [celebrating, setCelebrating] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -33,6 +37,7 @@ export function App() {
     gardenRef.current = result.garden
     setGarden(result.garden)
     setEvents(result.events)
+    if (result.events.some((e) => e.type === 'CollectionComplete')) setCelebrating(true)
   }, [])
 
   if (!garden) return <div className="loading" aria-busy="true" />
@@ -43,5 +48,12 @@ export function App() {
     return <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={send} />
   }
 
-  return <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} />
+  if (view === 'collection') return <CollectionScreen garden={garden} onClose={() => setView('garden')} />
+
+  return (
+    <>
+      <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} onOpenCollection={() => setView('collection')} />
+      {celebrating && <CollectionCompleteCelebration garden={garden} onDone={() => setCelebrating(false)} />}
+    </>
+  )
 }

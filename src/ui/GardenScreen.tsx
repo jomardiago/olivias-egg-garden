@@ -14,9 +14,10 @@ type Props = {
   today: LocalDate
   events: GardenEvent[]
   onCommand: (command: Command) => Promise<void>
+  onOpenCollection: () => void
 }
 
-export function GardenScreen({ garden, today, events, onCommand }: Props) {
+export function GardenScreen({ garden, today, events, onCommand, onOpenCollection }: Props) {
   const [picking, setPicking] = useState(false)
   const [pendingStars, setPendingStars] = useState<number | null>(null)
   const hatched = events.find((e) => e.type === 'EggHatched')
@@ -40,6 +41,10 @@ export function GardenScreen({ garden, today, events, onCommand }: Props) {
         </button>
       )}
       </nav>
+
+      <button type="button" className="collection-button" aria-label="Open my Collection" onClick={onOpenCollection}>
+        📖
+      </button>
 
       {picking && (
         <StarPicker
