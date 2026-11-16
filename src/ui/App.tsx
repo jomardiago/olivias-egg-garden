@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { availableEggFamilies, createGarden, handle, type Command, type Garden, type GardenEvent } from '../garden/index.ts'
 import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
+import { CollectionCompleteCelebration } from './CollectionCompleteCelebration.tsx'
+import { CollectionScreen } from './CollectionScreen.tsx'
 import { EggChoiceScreen } from './EggChoiceScreen.tsx'
 import { GardenScreen } from './GardenScreen.tsx'
-import { celebrate, currentReveal, NO_CELEBRATION } from './hatch/hatchCelebration.ts'
+import { celebrate, currentReveal, gardenAsShown, NO_CELEBRATION } from './hatch/hatchCelebration.ts'
 import { HatchCelebration } from './hatch/HatchCelebration.tsx'
 import { todayLocal } from './today.ts'
 
@@ -17,6 +19,8 @@ export function App() {
   const [events, setEvents] = useState<GardenEvent[]>([])
   const gardenRef = useRef<Garden | null>(null)
   const [celebration, signalCelebration] = useReducer(celebrate, NO_CELEBRATION)
+  const [view, setView] = useState<'garden' | 'collection'>('garden')
+  const [celebrating, setCelebrating] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -37,17 +41,29 @@ export function App() {
     setGarden(result.garden)
     setEvents(result.events)
     signalCelebration({ type: 'events', events: result.events })
+    // Shown once any Hatch celebration has finished.
+    if (result.events.some((e) => e.type === 'CollectionComplete')) setCelebrating(true)
   }, [])
 
   if (!garden) return <div className="loading" aria-busy="true" />
 
-  // A Hatch celebration plays over the Garden before anything else, including the Egg choice.
+  // A Hatch celebration plays over the Garden before anything else, including the Egg choice,
+  // once the Stars have finished flying into the Egg.
   const reveal = currentReveal(celebration)
   if (reveal) {
     return (
       <>
-        <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} />
-        <HatchCelebration key={reveal.characterId} reveal={reveal} childName={garden.childName} onSignal={signalCelebration} />
+        <GardenScreen
+          garden={gardenAsShown(garden, celebration, events)}
+          today={todayLocal()}
+          events={events}
+          onCommand={send}
+          onOpenCollection={() => setView('collection')}
+          onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
+        />
+        {reveal.phase !== 'waitForStars' && (
+          <HatchCelebration key={reveal.characterId} reveal={reveal} childName={garden.childName} onSignal={signalCelebration} />
+        )}
       </>
     )
   }
@@ -58,5 +74,19 @@ export function App() {
     return <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={send} />
   }
 
-  return <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} />
+  if (view === 'collection') return <CollectionScreen garden={garden} onClose={() => setView('garden')} />
+
+  return (
+    <>
+      <GardenScreen
+        garden={garden}
+        today={todayLocal()}
+        events={events}
+        onCommand={send}
+        onOpenCollection={() => setView('collection')}
+        onStarsLanded={() => signalCelebration({ type: 'starsLanded' })}
+      />
+      {celebrating && <CollectionCompleteCelebration garden={garden} onDone={() => setCelebrating(false)} />}
+    </>
+  )
 }

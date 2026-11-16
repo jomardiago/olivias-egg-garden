@@ -54,6 +54,10 @@ export type GardenEvent =
   | { type: 'EggChoiceNeeded'; familyIds: string[] }
   /** A new Egg of `familyId` now rests in the nest, already holding `eggStars` carried-over Stars. */
   | { type: 'EggChosen'; familyId: string; eggStars: number; hatchTarget: number }
+  /** The last Character in the catalog has hatched; later Stars are banked for a future Egg Family. */
+  | { type: 'CollectionComplete'; bankedStars: number }
+  /** After Collection complete, a Star Entry's Stars were banked; `bankedStars` is the new total. */
+  | { type: 'StarsBanked'; stars: number; bankedStars: number }
   | { type: 'CommandRejected'; reason: RejectionReason }
 
 export type RejectionReason =
@@ -106,6 +110,15 @@ function hatchTargetFor(eggsHatched: number): number {
 /** Egg Families that still have unhatched Characters, in catalog order. */
 export function availableEggFamilies(garden: Garden, catalog: Catalog = LAUNCH_CATALOG): string[] {
   return catalog.filter((family) => unhatchedCharacters(garden, family.id, catalog).length > 0).map((f) => f.id)
+}
+
+/**
+ * Every Character in the catalog has hatched: no Egg is offered, and
+ * Star Entries bank their Stars (the carried-over Stars) until a catalog
+ * update adds an Egg Family, which then makes the Garden await a choice again.
+ */
+export function isCollectionComplete(garden: Garden, catalog: Catalog = LAUNCH_CATALOG): boolean {
+  return garden.activeEgg.status === 'awaitingChoice' && availableEggFamilies(garden, catalog).length === 0
 }
 
 function unhatchedCharacters(garden: Garden, familyId: string, catalog: Catalog): string[] {
@@ -166,7 +179,7 @@ function rejected(garden: Garden, reason: RejectionReason): Result {
 }
 
 function makeStarEntry(garden: Garden, stars: number, deps: Deps): Result {
-  const rejection = starEntryRejection(garden, deps.today, stars)
+  const rejection = starEntryRejection(garden, deps.today, stars, deps.catalog)
   if (rejection) return rejected(garden, rejection)
   const recorded: Garden = {
     ...garden,
@@ -176,8 +189,8 @@ function makeStarEntry(garden: Garden, stars: number, deps: Deps): Result {
 }
 
 /** Whether a Star Entry can be made today; the UI uses it to show or hide the star button. */
-export function canMakeStarEntry(garden: Garden, today: LocalDate): boolean {
-  return starEntryRejection(garden, today, 0) === null
+export function canMakeStarEntry(garden: Garden, today: LocalDate, catalog: Catalog = LAUNCH_CATALOG): boolean {
+  return starEntryRejection(garden, today, 0, catalog) === null
 }
 
 /** School Days are Monday to Friday by the device-local calendar date. */
@@ -187,12 +200,12 @@ export function isSchoolDay(date: LocalDate): boolean {
   return weekday >= 1 && weekday <= 5
 }
 
-function starEntryRejection(garden: Garden, date: LocalDate, stars: number): RejectionReason | null {
+function starEntryRejection(garden: Garden, date: LocalDate, stars: number, catalog: Catalog = LAUNCH_CATALOG): RejectionReason | null {
   if (!Number.isInteger(stars) || stars < 0 || stars > MAX_STARS) return 'StarsOutOfRange'
   if (!isSchoolDay(date)) return 'NotASchoolDay'
   if (garden.starEntries.some((entry) => entry.date === date)) return 'AlreadyEnteredToday'
-  // The UI makes her choose her next Egg first.
-  if (garden.activeEgg.status === 'awaitingChoice') return 'AwaitingEggChoice'
+  // The UI makes her choose her next Egg first, unless there is no Egg left to choose.
+  if (garden.activeEgg.status === 'awaitingChoice' && !isCollectionComplete(garden, catalog)) return 'AwaitingEggChoice'
   return null
 }
 
@@ -201,7 +214,14 @@ const MAX_STARS = 3
 function addStars(garden: Garden, stars: number, deps: Deps): Result {
   if (stars === 0) return { garden, events: [{ type: 'ZeroStarDayRecorded' }] }
   const egg = garden.activeEgg
-  if (egg.status !== 'egg') return { garden, events: [] }
+  if (egg.status !== 'egg') {
+    // Collection complete: bank the Stars as carried-over Stars for a future Egg Family.
+    const bankedStars = egg.carriedOverStars + stars
+    return {
+      garden: { ...garden, activeEgg: { ...egg, carriedOverStars: bankedStars } },
+      events: [{ type: 'StarsBanked', stars, bankedStars }],
+    }
+  }
   const total = egg.stars + stars
   if (total < egg.hatchTarget) {
     return {
@@ -235,7 +255,8 @@ function hatch(garden: Garden, egg: Egg, carriedOverStars: number, deps: Deps): 
     const placed = placeEgg(hatchedGarden, onlyFamily, carriedOverStars, deps)
     return { garden: placed.garden, events: [hatchedEvent, ...placed.events] }
   }
-  // With no family left the Collection is complete; ticket 11 adds that event and banking.
-  if (familyIds.length === 0) return { garden: hatchedGarden, events: [hatchedEvent] }
+  if (familyIds.length === 0) {
+    return { garden: hatchedGarden, events: [hatchedEvent, { type: 'CollectionComplete', bankedStars: carriedOverStars }] }
+  }
   return { garden: hatchedGarden, events: [hatchedEvent, { type: 'EggChoiceNeeded', familyIds }] }
 }
