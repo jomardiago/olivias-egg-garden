@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { eggPattern, findEggFamily } from '../catalog/index.ts'
 import type { Command } from '../garden/index.ts'
 
