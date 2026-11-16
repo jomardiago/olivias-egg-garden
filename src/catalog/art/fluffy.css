@@ -1,0 +1,138 @@
+/* Fluffy Egg Family art (ticket 07). Transforms and opacity only, so 15 Characters stay smooth. */
+
+.fluffy { overflow: visible; }
+
+.fluffy__body,
+.fluffy__shadow { transform-origin: 100px 188px; }
+
+/* Idle: a gentle breathing bob, out of step with the others thanks to --fluffy-phase. */
+.fluffy--idle .fluffy__body { animation: fluffy-breathe 3s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--idle .fluffy__shadow { animation: fluffy-shadow-breathe 3s ease-in-out var(--fluffy-phase, 0s) infinite; }
+
+@keyframes fluffy-breathe { 50% { transform: translateY(-3px) scale(1.02, 0.98); } }
+@keyframes fluffy-shadow-breathe { 50% { transform: scale(0.94); } }
+
+/* Blinking (the component toggles .fluffy--blinking at random). */
+.fluffy__eye { transform-box: fill-box; transform-origin: center; transition: transform 70ms ease-in-out; }
+.fluffy--blinking .fluffy__eye { transform: scaleY(0.1); }
+
+/* Parts that move on their own. */
+.fluffy__ear,
+.fluffy__wing,
+.fluffy__tail,
+.fluffy__nose,
+.fluffy__nut { transform-box: fill-box; }
+
+/* ----- Bun-Bun: ear twitch; dance = two big squashy hops ----- */
+.fluffy--bun-bun .fluffy__ear--up { transform-origin: 50% 100%; }
+.fluffy--bun-bun .fluffy__ear--flop { transform-origin: 0% 0%; }
+.fluffy--bun-bun.fluffy--idle .fluffy__ear--up { animation: fluffy-ear-twitch 4.6s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--bun-bun.fluffy--dance .fluffy__body { animation: bunbun-hop var(--fluffy-dance) ease-in-out; }
+.fluffy--bun-bun.fluffy--dance .fluffy__shadow { animation: shadow-two-hops var(--fluffy-dance) ease-in-out; }
+.fluffy--bun-bun.fluffy--dance .fluffy__ear--flop { animation: bunbun-flop calc(var(--fluffy-dance) / 2) ease-in-out 2; }
+
+@keyframes fluffy-ear-twitch {
+  0%, 86%, 100% { transform: rotate(0); }
+  90% { transform: rotate(-12deg); }
+  94% { transform: rotate(7deg); }
+}
+@keyframes bunbun-hop {
+  0%, 100% { transform: none; }
+  10% { transform: scale(1.12, 0.84); }
+  26% { transform: translateY(-46px) scale(0.92, 1.1); }
+  42% { transform: scale(1.14, 0.84); }
+  58% { transform: translateY(-34px) scale(0.94, 1.08) rotate(-6deg); }
+  74% { transform: scale(1.1, 0.88); }
+  88% { transform: scale(0.98, 1.03); }
+}
+@keyframes shadow-two-hops {
+  0%, 10%, 42%, 74%, 100% { transform: none; }
+  26% { transform: scale(0.6); opacity: 0.06; }
+  58% { transform: scale(0.7); opacity: 0.08; }
+}
+@keyframes bunbun-flop {
+  50% { transform: rotate(-26deg); }
+}
+
+/* ----- Pip: wings flutter; dance = flappy wiggle with little jumps ----- */
+.fluffy--pip .fluffy__wing--left { transform-origin: 100% 30%; }
+.fluffy--pip .fluffy__wing--right { transform-origin: 0% 30%; }
+.fluffy--pip.fluffy--idle .fluffy__wing--left { animation: pip-flutter-left 3.4s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--pip.fluffy--idle .fluffy__wing--right { animation: pip-flutter-right 3.4s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--pip.fluffy--dance .fluffy__body { animation: pip-wiggle var(--fluffy-dance) ease-in-out; }
+.fluffy--pip.fluffy--dance .fluffy__wing--left { animation: pip-flap-left calc(var(--fluffy-dance) / 6) ease-in-out 6; }
+.fluffy--pip.fluffy--dance .fluffy__wing--right { animation: pip-flap-right calc(var(--fluffy-dance) / 6) ease-in-out 6; }
+
+@keyframes pip-flutter-left { 0%, 80%, 100% { transform: none; } 85%, 95% { transform: rotate(18deg); } 90% { transform: rotate(4deg); } }
+@keyframes pip-flutter-right { 0%, 80%, 100% { transform: none; } 85%, 95% { transform: rotate(-18deg); } 90% { transform: rotate(-4deg); } }
+@keyframes pip-flap-left { 50% { transform: rotate(40deg); } }
+@keyframes pip-flap-right { 50% { transform: rotate(-40deg); } }
+@keyframes pip-wiggle {
+  0%, 100% { transform: none; }
+  15% { transform: translateY(-14px) rotate(-10deg); }
+  30% { transform: rotate(0) scale(1.06, 0.94); }
+  45% { transform: translateY(-14px) rotate(10deg); }
+  60% { transform: rotate(0) scale(1.06, 0.94); }
+  78% { transform: translateY(-24px) rotate(-4deg); }
+  90% { transform: scale(1.05, 0.95); }
+}
+
+/* ----- Mochi: tail sway; dance = crouch, pounce, tail swish ----- */
+.fluffy--mochi .fluffy__tail { transform-origin: 0% 90%; }
+.fluffy--mochi .fluffy__ear--left { transform-origin: 80% 90%; }
+.fluffy--mochi .fluffy__ear--right { transform-origin: 20% 90%; }
+.fluffy--mochi.fluffy--idle .fluffy__tail { animation: mochi-sway 3.6s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--mochi.fluffy--idle .fluffy__ear--right { animation: fluffy-ear-twitch 5.2s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--mochi.fluffy--dance .fluffy__body { animation: mochi-pounce var(--fluffy-dance) ease-in-out; }
+.fluffy--mochi.fluffy--dance .fluffy__tail { animation: mochi-sway calc(var(--fluffy-dance) / 4) ease-in-out 4; }
+
+@keyframes mochi-sway { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-10deg); } }
+@keyframes mochi-pounce {
+  0%, 100% { transform: none; }
+  20% { transform: scale(1.14, 0.8); }
+  30% { transform: scale(1.16, 0.78) rotate(3deg); }
+  48% { transform: translateY(-44px) scale(0.92, 1.1) rotate(-8deg); }
+  64% { transform: scale(1.12, 0.86); }
+  76% { transform: rotate(-6deg); }
+  88% { transform: rotate(5deg); }
+}
+
+/* ----- Hazel: sniffing nose; dance = curl up and roll round ----- */
+.fluffy--hazel .fluffy__nose { transform-origin: 50% 50%; }
+.fluffy--hazel.fluffy--idle .fluffy__nose { animation: hazel-sniff 2.6s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--hazel.fluffy--dance .fluffy__body { transform-origin: 100px 120px; animation: hazel-roll var(--fluffy-dance) ease-in-out; }
+
+@keyframes hazel-sniff { 0%, 70%, 100% { transform: none; } 76%, 88% { transform: scale(1.1, 0.92); } 82%, 94% { transform: scale(0.96, 1.04); } }
+@keyframes hazel-roll {
+  0%, 100% { transform: none; }
+  14% { transform: scale(0.86); }
+  30% { transform: translateY(-22px) scale(0.86) rotate(120deg); }
+  52% { transform: translateY(-30px) scale(0.86) rotate(260deg); }
+  70% { transform: translateY(0) scale(0.86) rotate(360deg); }
+  80% { transform: scale(1.1, 0.88) rotate(360deg); }
+  90% { transform: scale(0.97, 1.03) rotate(360deg); }
+}
+
+/* ----- Pudding: waggy tail; dance = happy side-to-side bounce, ears flying ----- */
+.fluffy--pudding .fluffy__tail { transform-origin: 0% 100%; }
+.fluffy--pudding .fluffy__ear--left { transform-origin: 80% 0%; }
+.fluffy--pudding .fluffy__ear--right { transform-origin: 20% 0%; }
+.fluffy--pudding.fluffy--idle .fluffy__tail { animation: pudding-wag 0.9s ease-in-out var(--fluffy-phase, 0s) infinite; }
+.fluffy--pudding.fluffy--dance .fluffy__body { animation: pudding-bounce var(--fluffy-dance) ease-in-out; }
+.fluffy--pudding.fluffy--dance .fluffy__tail { animation: pudding-wag calc(var(--fluffy-dance) / 8) ease-in-out 8; }
+.fluffy--pudding.fluffy--dance .fluffy__ear--left { animation: pudding-ear-left calc(var(--fluffy-dance) / 4) ease-in-out 4; }
+.fluffy--pudding.fluffy--dance .fluffy__ear--right { animation: pudding-ear-right calc(var(--fluffy-dance) / 4) ease-in-out 4; }
+
+@keyframes pudding-wag { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(14deg); } }
+@keyframes pudding-ear-left { 50% { transform: rotate(28deg); } }
+@keyframes pudding-ear-right { 50% { transform: rotate(-28deg); } }
+@keyframes pudding-bounce {
+  0%, 100% { transform: none; }
+  12% { transform: translate(-14px, -18px) rotate(-8deg); }
+  25% { transform: translate(-14px, 0) scale(1.06, 0.94); }
+  37% { transform: translate(14px, -18px) rotate(8deg); }
+  50% { transform: translate(14px, 0) scale(1.06, 0.94); }
+  62% { transform: translate(-10px, -16px) rotate(-6deg); }
+  75% { transform: translate(-10px, 0) scale(1.05, 0.95); }
+  87% { transform: translate(0, -24px) rotate(0); }
+}
