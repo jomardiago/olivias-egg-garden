@@ -43,6 +43,8 @@ export type Garden = {
 }
 
 export type Command =
+  /** Parent Area: mute or unmute all sound. */
+  | { type: 'SetMuted'; muted: boolean }
   | { type: 'MakeStarEntry'; stars: number }
   /** Pick the next Egg by Egg Family; the Character inside is a random surprise. */
   | { type: 'ChooseEgg'; familyId: string }
@@ -52,6 +54,8 @@ export type Command =
   | { type: 'CorrectStarEntry'; date: LocalDate; stars: number }
 
 export type GardenEvent =
+  /** Parent Area: sound was switched off (`muted`) or on. */
+  | { type: 'MuteChanged'; muted: boolean }
   /** Stars went into the active Egg; `eggStars` is its fill afterwards (capped at the Hatch Target). */
   | { type: 'StarsAdded'; stars: number; eggStars: number; hatchTarget: number }
   | { type: 'ZeroStarDayRecorded' }
@@ -158,6 +162,8 @@ function newEgg(garden: Garden, familyId: string, random: () => number, catalog:
 
 export function handle(garden: Garden, command: Command, deps: Deps): Result {
   switch (command.type) {
+    case 'SetMuted':
+      return { garden: { ...garden, muted: command.muted }, events: [{ type: 'MuteChanged', muted: command.muted }] }
     case 'MakeStarEntry':
       return makeStarEntry(garden, command.stars, deps)
     case 'ChooseEgg':
