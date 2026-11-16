@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LAUNCH_CATALOG } from '../catalog/families.ts'
-import { availableEggFamilies, canMakeStarEntry, createGarden, handle, type Command, type Egg, type Garden, type GardenEvent, type Result } from './index.ts'
+import { availableEggFamilies, canMakeStarEntry, createGarden, handle, isCollectionComplete, type Command, type Egg, type Garden, type GardenEvent, type Result } from './index.ts'
 
 // 2026-11-16 is a Monday; these are consecutive School Days of that week and the next.
 const MON = '2026-11-16'
@@ -258,5 +258,65 @@ describe('Choosing the next Egg', () => {
 
     expect(events).toEqual([{ type: 'CommandRejected', reason: 'EggFamilyNotAvailable' }])
     expect(garden).toEqual(before)
+  })
+})
+
+describe('Collection complete', () => {
+  // A tiny catalog: one Egg Family with a single Character, so the first Hatch completes the Collection.
+  const tiny = [{ id: 'fluffy', name: 'Fluffy', pattern: 'Cream Egg.', characters: [{ id: 'bun-bun', name: 'Bun-Bun', kind: 'bunny' }] }]
+  const withSpiky = [
+    ...tiny,
+    { id: 'spiky', name: 'Spiky', pattern: 'Green Egg with soft spikes.', characters: [{ id: 'cactus', name: 'Prickles', kind: 'cactus' }] },
+  ]
+  const deps = (today: string, catalog = tiny) => ({ today, random: () => 0, catalog })
+  const entry = (garden: Garden, today: string, stars: number, catalog = tiny) =>
+    handle(garden, { type: 'MakeStarEntry', stars }, deps(today, catalog))
+
+  it('hatching the last Character in the catalog completes the Collection', () => {
+    const { garden, events } = entry(createGarden(() => 0, tiny), MON, 3)
+
+    expect(events).toEqual([
+      { type: 'StarsAdded', stars: 3, eggStars: 2, hatchTarget: 2 },
+      { type: 'EggHatched', characterId: 'bun-bun' },
+      { type: 'CollectionComplete', bankedStars: 1 },
+    ])
+    expect(isCollectionComplete(garden, tiny)).toBe(true)
+    expect(isCollectionComplete(garden, withSpiky)).toBe(false)
+  })
+
+  it('after Collection complete, Star Entries are still recorded and their Stars are banked, with no Egg offered', () => {
+    const complete = entry(createGarden(() => 0, tiny), MON, 3).garden
+    const { garden, events } = entry(complete, TUE, 2)
+
+    expect(events).toEqual([{ type: 'StarsBanked', stars: 2, bankedStars: 3 }])
+    expect(garden.starEntries).toEqual([
+      { date: MON, stars: 3 },
+      { date: TUE, stars: 2 },
+    ])
+    expect(garden.activeEgg).toEqual({ status: 'awaitingChoice', carriedOverStars: 3 })
+    expect(canMakeStarEntry(complete, TUE, tiny)).toBe(true)
+    expect(canMakeStarEntry(garden, TUE, tiny)).toBe(false)
+    expect(availableEggFamilies(garden, tiny)).toEqual([])
+  })
+
+  it('a 0-Star Star Entry after Collection complete is recorded as a 0-star day', () => {
+    const complete = entry(createGarden(() => 0, tiny), MON, 3).garden
+    const { garden, events } = entry(complete, TUE, 0)
+
+    expect(events).toEqual([{ type: 'ZeroStarDayRecorded' }])
+    expect(garden.activeEgg).toEqual({ status: 'awaitingChoice', carriedOverStars: 1 })
+  })
+
+  it('an Egg Family added in a later catalog update is awaiting a choice, and the banked Stars go into its first Egg', () => {
+    const complete = entry(createGarden(() => 0, tiny), MON, 3).garden
+    const banked = entry(complete, TUE, 2).garden
+
+    // After the update she must choose first: a Star Entry waits for her Egg choice.
+    expect(availableEggFamilies(banked, withSpiky)).toEqual(['spiky'])
+    expect(entry(banked, '2026-11-18', 1, withSpiky).events).toEqual([{ type: 'CommandRejected', reason: 'AwaitingEggChoice' }])
+
+    const { garden, events } = handle(banked, { type: 'ChooseEgg', familyId: 'spiky' }, deps(MON, withSpiky))
+    expect(events).toEqual([{ type: 'EggChosen', familyId: 'spiky', eggStars: 3, hatchTarget: 5 }])
+    expect(eggOf(garden)).toMatchObject({ familyId: 'spiky', characterId: 'cactus', stars: 3, hatchTarget: 5 })
   })
 })
