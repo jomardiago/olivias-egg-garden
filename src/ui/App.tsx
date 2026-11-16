@@ -3,6 +3,8 @@ import { availableEggFamilies, createGarden, handle, type Command, type Garden, 
 import { loadGarden, requestPersistentStorage, saveGarden } from '../storage/gardenStore.ts'
 import { EggChoiceScreen } from './EggChoiceScreen.tsx'
 import { GardenScreen } from './GardenScreen.tsx'
+import { ParentArea } from './parentArea/ParentArea.tsx'
+import { ParentAreaEntry } from './parentArea/ParentAreaEntry.tsx'
 import { todayLocal } from './today.ts'
 
 /**
@@ -13,6 +15,7 @@ import { todayLocal } from './today.ts'
 export function App() {
   const [garden, setGarden] = useState<Garden | null>(null)
   const [events, setEvents] = useState<GardenEvent[]>([])
+  const [parentAreaOpen, setParentAreaOpen] = useState(false)
   const gardenRef = useRef<Garden | null>(null)
 
   useEffect(() => {
@@ -25,23 +28,40 @@ export function App() {
     })()
   }, [])
 
-  const send = useCallback(async (command: Command) => {
+  const send = useCallback(async (command: Command): Promise<GardenEvent[]> => {
     const current = gardenRef.current
-    if (!current) return
+    if (!current) return []
     const result = handle(current, command, { today: todayLocal(), random: Math.random })
     await saveGarden(result.garden)
     gardenRef.current = result.garden
     setGarden(result.garden)
     setEvents(result.events)
+    return result.events
   }, [])
 
   if (!garden) return <div className="loading" aria-busy="true" />
 
-  // Also covers reopening the app after closing it before choosing.
-  const choosable = garden.activeEgg.status === 'awaitingChoice' ? availableEggFamilies(garden) : []
-  if (choosable.length > 0) {
-    return <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={send} />
+  // Closes by itself after a missed day or a raised correction, so the celebration and any Hatch play on the child's screens.
+  if (parentAreaOpen) {
+    return <ParentArea garden={garden} today={todayLocal()} onCommand={send} onClose={() => setParentAreaOpen(false)} />
   }
 
-  return <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={send} />
+  // Also covers reopening the app after closing it before choosing.
+  const choosable = garden.activeEgg.status === 'awaitingChoice' ? availableEggFamilies(garden) : []
+  const sendCommand = async (command: Command) => {
+    await send(command)
+  }
+  const screen =
+    choosable.length > 0 ? (
+      <EggChoiceScreen childName={garden.childName} familyIds={choosable} onCommand={sendCommand} />
+    ) : (
+      <GardenScreen garden={garden} today={todayLocal()} events={events} onCommand={sendCommand} />
+    )
+
+  return (
+    <>
+      {screen}
+      <ParentAreaEntry onOpen={() => setParentAreaOpen(true)} />
+    </>
+  )
 }
