@@ -10,11 +10,14 @@ function hue(characterId: string): string {
 }
 
 /** A friendly round blob until real Character art arrives. */
-export function PlaceholderCharacterArt({ characterId, pose = 'idle', silhouette, size = 72 }: CharacterArtProps) {
+export function PlaceholderCharacterArt({ characterId, pose = 'idle', silhouette, size = 72, onDanceEnd }: CharacterArtProps) {
   const fill = silhouette ? '#55506a' : hue(characterId)
   return (
     <svg
       className={`character character--${pose}`}
+      onAnimationEnd={(e) => {
+        if (e.animationName === 'placeholder-dance') onDanceEnd?.()
+      }}
       width={size}
       height={size}
       viewBox="0 0 100 100"
