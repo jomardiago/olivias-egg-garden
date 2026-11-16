@@ -62,7 +62,7 @@ export function TreasureJar({ bankedStars, events }: Props) {
 
   return (
     <div className="treasure-jar" style={{ '--jar-size': `${JAR_SIZE}px` } as CSSProperties} role="img" aria-label="A golden jar of treasure Stars">
-      <div ref={jarRef} key={landed} className={landed > 0 ? 'treasure-jar__body treasure-jar__body--pop' : 'treasure-jar__body'}>
+      <div ref={jarRef} key={`jar-${landed}`} className={landed > 0 ? 'treasure-jar__body treasure-jar__body--pop' : 'treasure-jar__body'}>
         <svg viewBox="0 0 120 140" width={JAR_SIZE * 0.86} height={JAR_SIZE} aria-hidden="true">
           <defs>
             <linearGradient id="jar-glass" x1="0" y1="0" x2="1" y2="0">
@@ -98,7 +98,7 @@ export function TreasureJar({ bankedStars, events }: Props) {
 
       {flying && origin && (
         <div
-          key={landed}
+          key={`flying-${landed}`}
           className="flying-star"
           style={{ left: origin.x, top: origin.y, '--side': landed % 2 === 0 ? 1 : -1 } as CSSProperties}
           aria-hidden="true"
