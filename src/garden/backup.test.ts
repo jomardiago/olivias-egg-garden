@@ -82,6 +82,13 @@ describe('Restore backup rejects bad files', () => {
     ['an Egg of an unknown Egg Family', withField('activeEgg', { status: 'egg', familyId: 'nope', characterId: 'x', hatchTarget: 2, stars: 0 }), 'BackupCorrupt'],
     ['an Egg with more Stars than its Hatch Target', withField('activeEgg', { status: 'egg', familyId: 'fluffy', characterId: 'x', hatchTarget: 2, stars: 5 }), 'BackupCorrupt'],
     ['a missing active Egg', withField('activeEgg', undefined), 'BackupCorrupt'],
+    ['a Star Entry on a Saturday', withField('starEntries', [{ date: '2026-11-21', stars: 1 }]), 'BackupCorrupt'],
+    ['a Star Entry with negative Stars', withField('starEntries', [{ date: '2026-11-16', stars: -1 }]), 'BackupCorrupt'],
+    ['carried-over Stars below 0', withField('activeEgg', { status: 'awaitingChoice', carriedOverStars: -1 }), 'BackupCorrupt'],
+    ['an Egg whose Hatch Target does not match the ladder for the Eggs hatched', withField('activeEgg', { status: 'egg', familyId: 'fluffy', characterId: 'pip', hatchTarget: 2, stars: 0 }), 'BackupCorrupt'],
+    ['an Eggs hatched count that differs from the hatched Characters', withField('eggsHatched', 2), 'BackupCorrupt'],
+    ['an Egg holding a Character that has already hatched', withField('activeEgg', { status: 'egg', familyId: 'fluffy', characterId: 'bun-bun', hatchTarget: 5, stars: 0 }), 'BackupCorrupt'],
+    ['an Egg holding a Character of another Egg Family', withField('activeEgg', { status: 'egg', familyId: 'splashy', characterId: 'pip', hatchTarget: 5, stars: 0 }), 'BackupCorrupt'],
   ]
 
   it.each(bad)('%s is rejected and changes nothing', (_name, backup, reason) => {

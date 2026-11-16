@@ -6,10 +6,10 @@
  */
 import { LAUNCH_CATALOG, type Catalog } from '../catalog/families.ts'
 
-export { eggStage, type EggStage } from './eggStage.ts'
+import { dayBefore, isCalendarDate, isSchoolDay, type LocalDate } from './dates.ts'
 
-/** A device-local calendar date, formatted `YYYY-MM-DD`. */
-export type LocalDate = string
+export { eggStage, type EggStage } from './eggStage.ts'
+export { dayBefore, isSchoolDay, utcDate, type LocalDate } from './dates.ts'
 
 export type StarEntry = { date: LocalDate; stars: number }
 
@@ -62,10 +62,14 @@ export type Command =
 export type GardenEvent =
   /** Parent Area: sound was switched off (`muted`) or on. */
   | { type: 'MuteChanged'; muted: boolean }
-  /** Stars went into the active Egg; `eggStars` is its fill afterwards (capped at the Hatch Target). */
-  | { type: 'StarsAdded'; stars: number; eggStars: number; hatchTarget: number }
+  /**
+   * Stars went into the active Egg: it held `eggStarsBefore`, and `eggStars` is its fill
+   * afterwards (capped at the Hatch Target, so overfilling Stars are carried over).
+   */
+  | { type: 'StarsAdded'; stars: number; eggStarsBefore: number; eggStars: number; hatchTarget: number }
   | { type: 'ZeroStarDayRecorded' }
-  | { type: 'EggHatched'; characterId: string }
+  /** The full Egg of `familyId` (its Hatch Target is `hatchTarget`) hatched `characterId`. */
+  | { type: 'EggHatched'; characterId: string; familyId: string; hatchTarget: number }
   /** The child must pick her next Egg from these Egg Families (catalog order). */
   | { type: 'EggChoiceNeeded'; familyIds: string[] }
   /** A new Egg of `familyId` now rests in the nest, already holding `eggStars` carried-over Stars. */
@@ -127,12 +131,40 @@ export function createGarden(random: () => number = () => 0, catalog: Catalog = 
   const families = availableEggFamilies(empty, catalog)
   const familyId = families[pickIndex(random, families.length)]
   if (!familyId) return empty
-  return { ...empty, activeEgg: newEgg(empty, familyId, random, catalog) }
+  return { ...empty, activeEgg: makeEgg(empty, familyId, random, catalog) }
 }
 
 /** The Hatch Target ladder: 2, then 5, then 8, then 10 for every later Egg. */
 const HATCH_TARGET_LADDER = [2, 5, 8] as const
 const LATER_HATCH_TARGET = 10
+
+/** The most Stars one School Day can earn. */
+export const MAX_STARS = 3
+
+/** The Star counts a Star Entry can have, `from` to `MAX_STARS`; the UI lists these as its choices. */
+export function starsRange(from = 0): number[] {
+  return Array.from({ length: MAX_STARS - from + 1 }, (_, i) => from + i)
+}
+
+/** The latest past day a missed Star Entry can be added for: the day before `today`. */
+export function latestMissedDay(today: LocalDate): LocalDate {
+  return dayBefore(today)
+}
+
+/** Whether an Egg is resting in the nest, as opposed to awaiting a choice or the Collection being complete. */
+export function hasActiveEgg(garden: Garden): garden is Garden & { activeEgg: Egg } {
+  return garden.activeEgg.status === 'egg'
+}
+
+/** The Stars banked for a future Egg Family once the Collection is complete; 0 otherwise. */
+export function bankedStars(garden: Garden, catalog: Catalog = LAUNCH_CATALOG): number {
+  return garden.activeEgg.status === 'awaitingChoice' && isCollectionComplete(garden, catalog) ? garden.activeEgg.carriedOverStars : 0
+}
+
+/** The Egg Families the child must choose from now: empty unless awaiting an Egg choice. */
+export function choosableEggFamilies(garden: Garden, catalog: Catalog = LAUNCH_CATALOG): string[] {
+  return garden.activeEgg.status === 'awaitingChoice' ? availableEggFamilies(garden, catalog) : []
+}
 
 function hatchTargetFor(eggsHatched: number): number {
   return HATCH_TARGET_LADDER[eggsHatched] ?? LATER_HATCH_TARGET
@@ -162,8 +194,8 @@ function pickIndex(random: () => number, length: number): number {
   return Math.min(length - 1, Math.max(0, Math.floor(random() * length)))
 }
 
-/** A new, empty Egg of `familyId` with a Character picked at random from its unhatched ones. */
-function newEgg(garden: Garden, familyId: string, random: () => number, catalog: Catalog): Egg {
+/** A new, empty Egg of `familyId` (not yet in the nest) with a Character picked at random from its unhatched ones. */
+function makeEgg(garden: Garden, familyId: string, random: () => number, catalog: Catalog): Egg {
   const candidates = unhatchedCharacters(garden, familyId, catalog)
   return {
     status: 'egg',
@@ -179,7 +211,7 @@ export function handle(garden: Garden, command: Command, deps: Deps): Result {
     case 'SetMuted':
       return { garden: { ...garden, muted: command.muted }, events: [{ type: 'MuteChanged', muted: command.muted }] }
     case 'MakeStarEntry':
-      return makeStarEntry(garden, command.stars, deps)
+      return recordStarEntry(garden, deps.today, command.stars, deps)
     case 'ChooseEgg':
       return chooseEgg(garden, command.familyId, deps)
     case 'AddMissedStarEntry':
@@ -240,6 +272,7 @@ function readGarden(data: Record<string, unknown>, catalog: Catalog): Garden | n
   const seenDates = new Set<string>()
   for (const entry of starEntries) {
     if (!isRecord(entry) || typeof entry.date !== 'string' || !isCalendarDate(entry.date)) return null
+    if (!isSchoolDay(entry.date)) return null
     if (typeof entry.stars !== 'number' || !isValidStars(entry.stars) || seenDates.has(entry.date)) return null
     seenDates.add(entry.date)
     entries.push({ date: entry.date, stars: entry.stars })
@@ -255,12 +288,14 @@ function readGarden(data: Record<string, unknown>, catalog: Catalog): Garden | n
     hatched.push({ characterId: item.characterId, hatchedOn: item.hatchedOn })
   }
 
-  const activeEgg = readActiveEgg(data.activeEgg, catalog)
+  if (eggsHatched !== hatched.length) return null
+
+  const activeEgg = readActiveEgg(data.activeEgg, catalog, eggsHatched, seenCharacters)
   if (!activeEgg) return null
   return { schemaVersion: 1, childName: childName.trim(), muted, starEntries: entries, hatchedCharacters: hatched, eggsHatched, activeEgg }
 }
 
-function readActiveEgg(value: unknown, catalog: Catalog): ActiveEgg | null {
+function readActiveEgg(value: unknown, catalog: Catalog, eggsHatched: number, hatchedIds: ReadonlySet<string>): ActiveEgg | null {
   if (!isRecord(value)) return null
   if (value.status === 'awaitingChoice') {
     return isCount(value.carriedOverStars) ? { status: 'awaitingChoice', carriedOverStars: value.carriedOverStars } : null
@@ -269,8 +304,8 @@ function readActiveEgg(value: unknown, catalog: Catalog): ActiveEgg | null {
   const { familyId, characterId, hatchTarget, stars } = value
   if (typeof familyId !== 'string' || typeof characterId !== 'string') return null
   const family = catalog.find((f) => f.id === familyId)
-  if (!family || !family.characters.some((c) => c.id === characterId)) return null
-  if (!isCount(hatchTarget) || hatchTarget < 1 || !isCount(stars) || stars >= hatchTarget) return null
+  if (!family || !family.characters.some((c) => c.id === characterId) || hatchedIds.has(characterId)) return null
+  if (hatchTarget !== hatchTargetFor(eggsHatched) || !isCount(stars) || stars >= hatchTarget) return null
   return { status: 'egg', familyId, characterId, hatchTarget, stars }
 }
 
@@ -278,15 +313,15 @@ function chooseEgg(garden: Garden, familyId: string, deps: Deps): Result {
   const waiting = garden.activeEgg
   if (waiting.status !== 'awaitingChoice') return rejected(garden, 'NotAwaitingEggChoice')
   if (!availableEggFamilies(garden, deps.catalog).includes(familyId)) return rejected(garden, 'EggFamilyNotAvailable')
-  return placeEgg(garden, familyId, waiting.carriedOverStars, deps)
+  return putEggInNest(garden, familyId, waiting.carriedOverStars, deps)
 }
 
 /**
- * Puts a new Egg of `familyId` in the nest with the carried-over Stars
+ * Makes a new Egg of `familyId` in the nest with the carried-over Stars
  * already inside; if they meet its Hatch Target it hatches straight away.
  */
-function placeEgg(garden: Garden, familyId: string, carriedOverStars: number, deps: Deps): Result {
-  const egg = newEgg(garden, familyId, deps.random, deps.catalog ?? LAUNCH_CATALOG)
+function putEggInNest(garden: Garden, familyId: string, carriedOverStars: number, deps: Deps): Result {
+  const egg = makeEgg(garden, familyId, deps.random, deps.catalog ?? LAUNCH_CATALOG)
   const eggStars = Math.min(carriedOverStars, egg.hatchTarget)
   const chosen: GardenEvent = { type: 'EggChosen', familyId, eggStars, hatchTarget: egg.hatchTarget }
   if (carriedOverStars < egg.hatchTarget) {
@@ -298,10 +333,6 @@ function placeEgg(garden: Garden, familyId: string, carriedOverStars: number, de
 
 function rejected(garden: Garden, reason: RejectionReason): Result {
   return { garden, events: [{ type: 'CommandRejected', reason }] }
-}
-
-function makeStarEntry(garden: Garden, stars: number, deps: Deps): Result {
-  return recordStarEntry(garden, deps.today, stars, deps)
 }
 
 /** ISO `YYYY-MM-DD` dates compare in calendar order as plain strings. */
@@ -345,13 +376,6 @@ export function starEntryHistory(garden: Garden): StarEntry[] {
   return [...garden.starEntries].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
 }
 
-/** Whether `date` is a real `YYYY-MM-DD` calendar date. */
-function isCalendarDate(date: LocalDate): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false
-  const [year, month, day] = date.split('-').map(Number)
-  return new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1)).toISOString().slice(0, 10) === date
-}
-
 function hasStarEntry(garden: Garden, date: LocalDate): boolean {
   return garden.starEntries.some((entry) => entry.date === date)
 }
@@ -371,13 +395,6 @@ export function canMakeStarEntry(garden: Garden, today: LocalDate, catalog: Cata
   return starEntryRejection(garden, today, 0, catalog) === null
 }
 
-/** School Days are Monday to Friday by the device-local calendar date. */
-export function isSchoolDay(date: LocalDate): boolean {
-  const [year, month, day] = date.split('-').map(Number)
-  const weekday = new Date(Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1)).getUTCDay()
-  return weekday >= 1 && weekday <= 5
-}
-
 function starEntryRejection(garden: Garden, date: LocalDate, stars: number, catalog: Catalog = LAUNCH_CATALOG): RejectionReason | null {
   if (!isValidStars(stars)) return 'StarsOutOfRange'
   if (!isSchoolDay(date)) return 'NotASchoolDay'
@@ -386,8 +403,6 @@ function starEntryRejection(garden: Garden, date: LocalDate, stars: number, cata
   if (garden.activeEgg.status === 'awaitingChoice' && !isCollectionComplete(garden, catalog)) return 'AwaitingEggChoice'
   return null
 }
-
-const MAX_STARS = 3
 
 function isValidStars(stars: number): boolean {
   return Number.isInteger(stars) && stars >= 0 && stars <= MAX_STARS
@@ -408,13 +423,16 @@ function addStars(garden: Garden, stars: number, deps: Deps): Result {
   if (total < egg.hatchTarget) {
     return {
       garden: { ...garden, activeEgg: { ...egg, stars: total } },
-      events: [{ type: 'StarsAdded', stars, eggStars: total, hatchTarget: egg.hatchTarget }],
+      events: [{ type: 'StarsAdded', stars, eggStarsBefore: egg.stars, eggStars: total, hatchTarget: egg.hatchTarget }],
     }
   }
   const hatched = hatch(garden, egg, total - egg.hatchTarget, deps)
   return {
     garden: hatched.garden,
-    events: [{ type: 'StarsAdded', stars, eggStars: egg.hatchTarget, hatchTarget: egg.hatchTarget }, ...hatched.events],
+    events: [
+      { type: 'StarsAdded', stars, eggStarsBefore: egg.stars, eggStars: egg.hatchTarget, hatchTarget: egg.hatchTarget },
+      ...hatched.events,
+    ],
   }
 }
 
@@ -430,11 +448,11 @@ function hatch(garden: Garden, egg: Egg, carriedOverStars: number, deps: Deps): 
     eggsHatched: garden.eggsHatched + 1,
     activeEgg: { status: 'awaitingChoice', carriedOverStars },
   }
-  const hatchedEvent: GardenEvent = { type: 'EggHatched', characterId: egg.characterId }
+  const hatchedEvent: GardenEvent = { type: 'EggHatched', characterId: egg.characterId, familyId: egg.familyId, hatchTarget: egg.hatchTarget }
   const familyIds = availableEggFamilies(hatchedGarden, deps.catalog)
   const [onlyFamily] = familyIds
   if (familyIds.length === 1 && onlyFamily) {
-    const placed = placeEgg(hatchedGarden, onlyFamily, carriedOverStars, deps)
+    const placed = putEggInNest(hatchedGarden, onlyFamily, carriedOverStars, deps)
     return { garden: placed.garden, events: [hatchedEvent, ...placed.events] }
   }
   if (familyIds.length === 0) {

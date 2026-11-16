@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { LAUNCH_CATALOG } from '../catalog/families.ts'
-import { availableEggFamilies, canMakeStarEntry, createGarden, handle, isCollectionComplete, type Command, type Egg, type Garden, type GardenEvent, type Result } from './index.ts'
+import { availableEggFamilies, canMakeStarEntry, bankedStars, choosableEggFamilies, createGarden, handle, hasActiveEgg, isCollectionComplete, latestMissedDay, MAX_STARS, starsRange, type Command, type Egg, type Garden, type GardenEvent, type Result } from './index.ts'
 
 // 2026-11-16 is a Monday; these are consecutive School Days of that week and the next.
 const MON = '2026-11-16'
@@ -78,10 +78,54 @@ describe('Make Star Entry', () => {
   it('Stars below the Hatch Target go into the Egg without hatching it', () => {
     const { garden, events } = starEntry(createGarden(), MON, 1)
 
-    expect(events).toEqual([{ type: 'StarsAdded', stars: 1, eggStars: 1, hatchTarget: 2 }])
+    expect(events).toEqual([{ type: 'StarsAdded', stars: 1, eggStarsBefore: 0, eggStars: 1, hatchTarget: 2 }])
     expect(garden.activeEgg).toMatchObject({ stars: 1, hatchTarget: 2 })
     expect(garden.hatchedCharacters).toEqual([])
     expect(garden.starEntries).toEqual([{ date: MON, stars: 1 }])
+  })
+})
+
+describe('Stars added', () => {
+  it('reports the real Stars in the Egg before the entry, even when the Stars overfill it', () => {
+    const half = starEntry(createGarden(), MON, 1).garden // first Egg: 1 of 2
+    const { events } = starEntry(half, TUE, 3)
+
+    expect(events).toContainEqual({ type: 'StarsAdded', stars: 3, eggStarsBefore: 1, eggStars: 2, hatchTarget: 2 })
+  })
+
+  it('names the Egg Family of the Character that hatched', () => {
+    const { events } = starEntry(createGarden(), MON, 2)
+
+    expect(events).toContainEqual({ type: 'EggHatched', characterId: 'bun-bun', familyId: 'fluffy', hatchTarget: 2 })
+  })
+})
+
+describe('Garden helpers for the UI', () => {
+  it('knows whether an Egg is resting in the nest', () => {
+    const fresh = createGarden()
+    const hatched = starEntry(fresh, MON, 2).garden
+
+    expect(hasActiveEgg(fresh)).toBe(true)
+    expect(hasActiveEgg(hatched)).toBe(false)
+  })
+
+  it('offers families to choose from only while awaiting a choice', () => {
+    const fresh = createGarden()
+    const hatched = starEntry(fresh, MON, 2).garden
+
+    expect(choosableEggFamilies(fresh)).toEqual([])
+    expect(choosableEggFamilies(hatched)).toEqual(['fluffy', 'sparkly', 'splashy'])
+  })
+
+  it('a missed day can be at most the day before today', () => {
+    expect(latestMissedDay(MON)).toBe('2026-11-15')
+    expect(latestMissedDay('2026-03-01')).toBe('2026-02-28')
+  })
+
+  it('Stars range from 0 to the most a day can earn', () => {
+    expect(MAX_STARS).toBe(3)
+    expect(starsRange()).toEqual([0, 1, 2, 3])
+    expect(starsRange(1)).toEqual([1, 2, 3])
   })
 })
 
@@ -233,7 +277,7 @@ describe('Choosing the next Egg', () => {
 
     expect(events).toEqual([
       { type: 'EggChosen', familyId: 'splashy', eggStars: 5, hatchTarget: 5 },
-      { type: 'EggHatched', characterId: 'bubbles' },
+      { type: 'EggHatched', characterId: 'bubbles', familyId: 'splashy', hatchTarget: 5 },
       { type: 'EggChoiceNeeded', familyIds: ['fluffy', 'sparkly', 'splashy'] },
     ])
     expect(garden.hatchedCharacters.map((h) => h.characterId)).toEqual(['bun-bun', 'bubbles'])
@@ -276,8 +320,8 @@ describe('Collection complete', () => {
     const { garden, events } = entry(createGarden(() => 0, tiny), MON, 3)
 
     expect(events).toEqual([
-      { type: 'StarsAdded', stars: 3, eggStars: 2, hatchTarget: 2 },
-      { type: 'EggHatched', characterId: 'bun-bun' },
+      { type: 'StarsAdded', stars: 3, eggStarsBefore: 0, eggStars: 2, hatchTarget: 2 },
+      { type: 'EggHatched', characterId: 'bun-bun', familyId: 'fluffy', hatchTarget: 2 },
       { type: 'CollectionComplete', bankedStars: 1 },
     ])
     expect(isCollectionComplete(garden, tiny)).toBe(true)
@@ -289,6 +333,8 @@ describe('Collection complete', () => {
     const { garden, events } = entry(complete, TUE, 2)
 
     expect(events).toEqual([{ type: 'StarsBanked', stars: 2, bankedStars: 3 }])
+    expect(bankedStars(garden, tiny)).toBe(3)
+    expect(bankedStars(complete, withSpiky)).toBe(0)
     expect(garden.starEntries).toEqual([
       { date: MON, stars: 3 },
       { date: TUE, stars: 2 },

@@ -25,7 +25,7 @@ describe('Add missed Star Entry', () => {
   it('a forgotten past School Day is recorded and its Stars go into the Egg, like a normal Star Entry', () => {
     const { garden, events } = addMissed(createGarden(), MON, 1, WED)
 
-    expect(events).toEqual([{ type: 'StarsAdded', stars: 1, eggStars: 1, hatchTarget: 2 }])
+    expect(events).toEqual([{ type: 'StarsAdded', stars: 1, eggStarsBefore: 0, eggStars: 1, hatchTarget: 2 }])
     expect(garden.starEntries).toEqual([{ date: MON, stars: 1 }])
     expect(garden.activeEgg).toMatchObject({ status: 'egg', stars: 1 })
   })
@@ -98,7 +98,7 @@ describe('Correct Star Entry', () => {
 
     expect(events).toEqual([
       { type: 'StarEntryCorrected', date: MON, previousStars: 0, stars: 1 },
-      { type: 'StarsAdded', stars: 1, eggStars: 1, hatchTarget: 2 },
+      { type: 'StarsAdded', stars: 1, eggStarsBefore: 0, eggStars: 1, hatchTarget: 2 },
     ])
     expect(garden.starEntries).toEqual([{ date: MON, stars: 1 }])
     expect(garden.activeEgg).toMatchObject({ status: 'egg', stars: 1 })
