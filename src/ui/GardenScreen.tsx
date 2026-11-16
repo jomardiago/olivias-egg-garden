@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { canMakeStarEntry, type Command, type Garden, type GardenEvent, type LocalDate } from '../garden/index.ts'
 import { EggView } from './EggView.tsx'
 import { GardenScene } from './garden/GardenScene.tsx'
