@@ -107,7 +107,8 @@ main.garden {
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
+  /* Smaller on phones so Characters have a clear lane on each side of the nest. */
+  transform: translate(-50%, -50%) scale(0.8);
 }
 
 .nest {

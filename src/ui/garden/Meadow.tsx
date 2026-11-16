@@ -47,7 +47,12 @@ export function Meadow({ characterIds, justHatchedId, children }: Props) {
     const observer = new ResizeObserver(measure)
     observer.observe(meadow)
     observer.observe(nest)
-    return () => observer.disconnect()
+    // Rotating the device: some browsers report it late through the observer.
+    addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      removeEventListener('resize', measure)
+    }
   }, [])
 
   const count = characterIds.length
